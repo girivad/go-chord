@@ -1,0 +1,23 @@
+import "google/protobuf/empty.proto"
+
+// getPredecessor {} => {IP: string}
+// updatePredecessor {IP: string} => {}
+service Predecessor{
+    rpc getPredecessor(google.protobuf.Empty) returns (string){}
+    rpc updatePredecessor(string) returns (google.protobuf.Empty){}
+}
+
+// findSuccessor {hash: int} => {IP: string}
+service Lookup{
+    rpc findSuccessor(int) returns (string){}
+}
+
+// check {} => {}
+service Check{
+    rpc liveCheck(google.protobuf.Empty) returns (google.protobuf.Empty){}
+}
+
+// transferKeys {hash} => map<string, string>
+service Data{
+    rpc transferData(int) returns (map<any, any>){}
+}
