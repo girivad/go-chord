@@ -45,3 +45,15 @@ func (dataServer *DataServer) GetValue(w http.ResponseWriter, r *http.Request) {
 	// Automatically sends Status OK Header.
 	w.Write(valueBytes)
 }
+
+func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
+	key := mux.Vars(r)["key"]
+
+	if key == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	// Check if key is in the map => 201 if no, 200 if yes.
+	// val, ok := dataServer.KVMap[key]
+}
