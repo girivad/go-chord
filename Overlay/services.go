@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"context"
+	"errors"
 
 	pb "github.com/girivad/go-chord/Proto"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -28,17 +29,32 @@ func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *wrap
 // Predecessor Services
 
 func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *emptypb.Empty) (*wrapperspb.StringValue, error) {
+	if chordServer.Predecessor != nil {
+		return &wrapperspb.StringValue{
+			Value: chordServer.Predecessor.Ip,
+		}, nil
+	}
 
+	return nil, errors.New("predecessor not known")
 }
 
-func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, empty *wrapperspb.StringValue) (*emptypb.Empty, error) {
+func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *wrapperspb.StringValue) (*emptypb.Empty, error) {
+	if isBetween(hash(ip.Value), hash(chordServer.Predecessor.Ip), chordServer.Hash) {
+		var err error
+		chordServer.Predecessor, err = Connect(ip.Value)
+		return &emptypb.Empty{}, err
+	}
 
+	return &emptypb.Empty{}, nil
 }
+
+// Check Service (check if node is still alive).
 
 func (chordServer *ChordServer) LiveCheck(ctx context.Context, empty *emptypb.Empty) (*emptypb.Empty, error) {
-
+	return &emptypb.Empty{}, nil
 }
 
-func (chordServer *ChordServer) TransferData(ctx context.Context, hash *wrapperspb.Int64Value) (*pb.KVMap, error) {
-
+// Data Service: Transfer data to new owner
+func (chordServer *ChordServer) TransferData(ctx context.Context, nodeHash *wrapperspb.Int64Value) (*pb.KVMap, error) {
+	return nil, nil
 }

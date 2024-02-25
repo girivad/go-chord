@@ -34,7 +34,7 @@ func main() {
 
 	if *contactPtr != "None" {
 		// Make a client for the contact, and then run a join service on it.
-		contactNode, err := chordServer.Connect(*contactPtr)
+		contactNode, err := overlay.Connect(*contactPtr)
 
 		if err != nil {
 			fmt.Println("Unable to connect to the contact in the Chord Ring:", err)

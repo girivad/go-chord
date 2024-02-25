@@ -9,14 +9,6 @@ message Value{
     google.protobuf.Any val = 1;
 }
 
-// message IP{
-//     string ip = 1;
-// }
-
-// message Hash{
-//     int64 hash = 1;
-// }
-
 message KVMap{
     map<string, Value> kvmap = 1;
 }

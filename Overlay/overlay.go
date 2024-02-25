@@ -69,7 +69,7 @@ func (chordServer *ChordServer) Serve() error {
 	return err
 }
 
-func (chordServer *ChordServer) Connect(ip string) (*ChordNode, error) {
+func Connect(ip string) (*ChordNode, error) {
 	// Returns pointer to ChordNode with clients to the IP address.
 	clientConn, err := grpc.Dial(ip+":8081", grpc.WithTransportCredentials(insecure.NewCredentials()))
 
@@ -97,7 +97,7 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 	}
 
 	// Set successor
-	chordServer.FingerTable[0], err = chordServer.Connect(successorIpMsg.Value)
+	chordServer.FingerTable[0], err = Connect(successorIpMsg.Value)
 
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 		return err
 	}
 
-	chordServer.Predecessor, err = chordServer.Connect(predecessorIpMsg.Value)
+	chordServer.Predecessor, err = Connect(predecessorIpMsg.Value)
 
 	return err
 }
