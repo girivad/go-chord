@@ -1,7 +1,7 @@
 package overlay
 
 import (
-	"github.com/girivad/go-chord/data"
+	data "github.com/girivad/go-chord/Data"
 )
 
 type ChordNode struct {
@@ -27,4 +27,8 @@ func NewChordNode(ip string, capacity int) *ChordNode {
 		PredecessorIP: "",
 		FingerTable:   make([]string, capacity),
 	}
+}
+
+func (chordNode *ChordNode) Join(contact string) {
+
 }

@@ -1,15 +1,36 @@
-import "google/protobuf/empty.proto"
+syntax = "proto3";
+package overlay;
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/wrappers.proto";
+option go_package = "github.com/girivad/go-chord/overlay";
+
+message Value{
+    google.protobuf.Any val = 1;
+}
+
+// message IP{
+//     string ip = 1;
+// }
+
+// message Hash{
+//     int64 hash = 1;
+// }
+
+message KVMap{
+    map<string, Value> kvmap = 1;
+}
 
 // getPredecessor {} => {IP: string}
 // updatePredecessor {IP: string} => {}
 service Predecessor{
-    rpc getPredecessor(google.protobuf.Empty) returns (string){}
-    rpc updatePredecessor(string) returns (google.protobuf.Empty){}
+    rpc getPredecessor(google.protobuf.Empty) returns (google.protobuf.StringValue){}
+    rpc updatePredecessor(google.protobuf.StringValue) returns (google.protobuf.Empty){}
 }
 
 // findSuccessor {hash: int} => {IP: string}
 service Lookup{
-    rpc findSuccessor(int) returns (string){}
+    rpc findSuccessor(google.protobuf.Int64Value) returns (google.protobuf.StringValue){}
 }
 
 // check {} => {}
@@ -19,5 +40,5 @@ service Check{
 
 // transferKeys {hash} => map<string, string>
 service Data{
-    rpc transferData(int) returns (map<any, any>){}
+    rpc transferData(google.protobuf.Int64Value) returns (KVMap){}
 }
