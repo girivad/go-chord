@@ -4,7 +4,7 @@
 // 	protoc        v4.25.3
 // source: Proto/overlay.proto
 
-package overlay
+package proto
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

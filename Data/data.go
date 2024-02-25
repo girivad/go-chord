@@ -111,3 +111,7 @@ func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(([]byte)(http.StatusText(http.StatusOK)))
 }
+
+func (dataServer *DataServer) Serve(port int) {
+
+}
