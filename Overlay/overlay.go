@@ -15,6 +15,7 @@ import (
 // Interface for nodes in the Chord Ring.
 type ChordNode struct {
 	// Collection of clients for multiple services.
+	Ip                string
 	PredecessorClient pb.PredecessorClient
 	LookupClient      pb.LookupClient
 	CheckClient       pb.CheckClient
@@ -33,11 +34,6 @@ type ChordServer struct {
 	pb.UnimplementedPredecessorServer
 	pb.UnimplementedCheckServer
 	pb.UnimplementedDataServer
-}
-
-func hash(ip string) int64 {
-	// Placeholder Hash
-	return 0
 }
 
 func NewChordServer(ip string, capacity int64) *ChordServer {
@@ -82,6 +78,7 @@ func (chordServer *ChordServer) Connect(ip string) (*ChordNode, error) {
 	}
 
 	chordNode := &ChordNode{
+		Ip:                ip,
 		PredecessorClient: pb.NewPredecessorClient(clientConn),
 		LookupClient:      pb.NewLookupClient(clientConn),
 		CheckClient:       pb.NewCheckClient(clientConn),
