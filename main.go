@@ -50,5 +50,10 @@ func main() {
 	}
 
 	// Serve data from 8080, gRPC through 8081.
-	chordServer.Serve()
+	err = chordServer.Serve()
+
+	if err != nil {
+		fmt.Println("Failed to Serve Data/Services:", err)
+		os.Exit(1)
+	}
 }

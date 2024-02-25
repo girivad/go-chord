@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"context"
+	"net"
 
 	data "github.com/girivad/go-chord/Data"
 	pb "github.com/girivad/go-chord/Proto"
@@ -28,6 +29,10 @@ type ChordServer struct {
 	Capacity    int64
 	Predecessor *ChordNode
 	FingerTable []*ChordNode
+	pb.UnimplementedLookupServer
+	pb.UnimplementedPredecessorServer
+	pb.UnimplementedCheckServer
+	pb.UnimplementedDataServer
 }
 
 func hash(ip string) int64 {
@@ -46,10 +51,26 @@ func NewChordServer(ip string, capacity int64) *ChordServer {
 	}
 }
 
-func (chordServer *ChordServer) Serve() {
+func (chordServer *ChordServer) Serve() error {
 	// Data served from port 8080.
 	chordServer.KVStore.Serve(8080)
-	// Serve the gRPC server as well.
+
+	// Serve the gRPC server as well, at port 8081.
+	grpcListener, err := net.Listen("tcp", ":8081")
+
+	if err != nil {
+		return err
+	}
+
+	grpcServer := grpc.NewServer()
+	pb.RegisterPredecessorServer(grpcServer, chordServer)
+	pb.RegisterLookupServer(grpcServer, chordServer)
+	pb.RegisterCheckServer(grpcServer, chordServer)
+	pb.RegisterDataServer(grpcServer, chordServer)
+
+	err = grpcServer.Serve(grpcListener)
+
+	return err
 }
 
 func (chordServer *ChordServer) Connect(ip string) (*ChordNode, error) {
