@@ -10,6 +10,7 @@ import (
 )
 
 // Lookup Services
+// TO-DO: Update to handle timed contexts.
 
 func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *wrapperspb.Int64Value) (*wrapperspb.StringValue, error) {
 	// Find the nearest predecessor and return its successor.

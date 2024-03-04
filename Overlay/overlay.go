@@ -48,9 +48,6 @@ func NewChordServer(ip string, capacity int64) *ChordServer {
 }
 
 func (chordServer *ChordServer) Serve() error {
-	// Data served from port 8080.
-	chordServer.KVStore.Serve(8080)
-
 	// Serve the gRPC server as well, at port 8081.
 	grpcListener, err := net.Listen("tcp", ":8081")
 
@@ -63,6 +60,11 @@ func (chordServer *ChordServer) Serve() error {
 	pb.RegisterLookupServer(grpcServer, chordServer)
 	pb.RegisterCheckServer(grpcServer, chordServer)
 	pb.RegisterDataServer(grpcServer, chordServer)
+
+	// Data served from port 8080.
+	go chordServer.KVStore.Serve(8080)
+	go chordServer.Notify()
+	go chordServer.FixFingers()
 
 	err = grpcServer.Serve(grpcListener)
 
