@@ -20,7 +20,7 @@ func main() {
 
 	flag.Parse()
 	ip := os.Args[1]
-	capacity, err := strconv.ParseInt(os.Args[2], 2, 64)
+	capacity, err := strconv.ParseInt(os.Args[2], 10, 64)
 
 	if err != nil {
 		fmt.Println("Error Reading Capacity:", err)
