@@ -52,7 +52,7 @@ func (chordServer *ChordServer) FixFingers() {
 
 		fingerStart := (chordServer.Hash + 1<<(fingerToUpdate)) % (1 << chordServer.Capacity)
 
-		if fingerToUpdate > 0 && !isBetween(hash(chordServer.FingerTable[fingerToUpdate-1].Ip), chordServer.Hash, fingerStart) {
+		if fingerToUpdate > 0 && !isBetween(hash(chordServer.FingerTable[fingerToUpdate-1].Ip, chordServer.Capacity), chordServer.Hash, fingerStart) {
 			newFinger, err := Connect(chordServer.FingerTable[fingerToUpdate-1].Ip)
 			if err == nil {
 				retries = 0
@@ -150,7 +150,7 @@ func (chordServer *ChordServer) Stabilize() {
 			continue
 		}
 
-		if !isBetween(hash(newSuccessorIp.Value), chordServer.Hash, hash(chordServer.FingerTable[0].Ip)) {
+		if !isBetween(hash(newSuccessorIp.Value, chordServer.Capacity), chordServer.Hash, hash(chordServer.FingerTable[0].Ip, chordServer.Capacity)) {
 			// chordServer is still the latest predecessor to its successor (i.e. no new nodes have joined in between them).
 			log.Printf("[INFO] %s is still the latest predecessor to %s.", chordServer.IP, chordServer.FingerTable[0].Ip)
 			continue
