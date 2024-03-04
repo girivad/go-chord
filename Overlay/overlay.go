@@ -40,7 +40,7 @@ func NewChordServer(ip string, capacity int64) *ChordServer {
 	return &ChordServer{
 		KVStore:     data.NewDataServer(),
 		IP:          ip,
-		Hash:        hash(ip),
+		Hash:        hash(ip, capacity),
 		Capacity:    capacity,
 		Predecessor: nil,
 		FingerTable: make([]*ChordNode, capacity),
@@ -65,6 +65,8 @@ func (chordServer *ChordServer) Serve() error {
 	go chordServer.KVStore.Serve(8080)
 	go chordServer.Notify()
 	go chordServer.FixFingers()
+	go chordServer.CheckPredecessor()
+	go chordServer.Stabilize()
 
 	err = grpcServer.Serve(grpcListener)
 

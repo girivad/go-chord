@@ -17,7 +17,7 @@ func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *wrap
 
 	// Ask the latest finger before the key to find the successor.
 	for finger := chordServer.Capacity - 1; finger >= 0; finger-- {
-		if isBetween(hash(chordServer.FingerTable[finger].Ip), chordServer.Hash, keyHash.Value) {
+		if isBetween(hash(chordServer.FingerTable[finger].Ip, chordServer.Capacity), chordServer.Hash, keyHash.Value) {
 			ipMsg, err := chordServer.FingerTable[finger].LookupClient.FindSuccessor(ctx, keyHash)
 			return ipMsg, err
 		}
@@ -40,7 +40,7 @@ func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *empty
 }
 
 func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *wrapperspb.StringValue) (*emptypb.Empty, error) {
-	if isBetween(hash(ip.Value), hash(chordServer.Predecessor.Ip), chordServer.Hash) {
+	if isBetween(hash(ip.Value, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), chordServer.Hash) {
 		var err error
 		chordServer.Predecessor, err = Connect(ip.Value)
 		return &emptypb.Empty{}, err
