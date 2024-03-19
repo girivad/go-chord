@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	data "github.com/girivad/go-chord/Data"
@@ -30,21 +31,44 @@ type ChordServer struct {
 	Capacity    int64
 	Predecessor *ChordNode
 	FingerTable []*ChordNode
+	KeyIndex    *BST
 	pb.UnimplementedLookupServer
 	pb.UnimplementedPredecessorServer
 	pb.UnimplementedCheckServer
 	pb.UnimplementedDataServer
 }
 
+func (chordServer *ChordServer) RegisterKey(key string) {
+	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
+		fmt.Printf("Attempted to register Key %s with node %s, but doesn't belong here.\n", key, chordServer.IP)
+		return
+	}
+
+	chordServer.KeyIndex.Insert(key)
+}
+
+func (chordServer *ChordServer) RegisterDelete(key string) {
+	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
+		fmt.Printf("Attempted to register delete key %s at node %s, but doesn't belong here.\n", key, chordServer.IP)
+		return
+	}
+
+	chordServer.KeyIndex.Delete(key)
+}
+
 func NewChordServer(ip string, capacity int64) *ChordServer {
-	return &ChordServer{
-		KVStore:     data.NewDataServer(),
+	chordServer := &ChordServer{
 		IP:          ip,
 		Hash:        hash(ip, capacity),
 		Capacity:    capacity,
 		Predecessor: nil,
 		FingerTable: make([]*ChordNode, capacity),
+		KeyIndex:    &BST{},
 	}
+
+	chordServer.KVStore = data.NewDataServer(chordServer.RegisterKey, chordServer.RegisterDelete)
+
+	return chordServer
 }
 
 func (chordServer *ChordServer) Serve() error {

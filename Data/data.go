@@ -13,12 +13,13 @@ type Value struct {
 }
 
 type DataServer struct {
-	KVMap    map[string]Value
-	KeyIndex any // Should be BST/RBT once implemented, used to identify keys that need to be transferred.
+	KVMap          map[string]Value
+	RegisterKey    func(string)
+	RegisterDelete func(string)
 }
 
-func NewDataServer() *DataServer {
-	return &DataServer{KVMap: make(map[string]Value), KeyIndex: nil}
+func NewDataServer(registerKey func(string), registerDelete func(string)) *DataServer {
+	return &DataServer{KVMap: make(map[string]Value), RegisterKey: registerKey, RegisterDelete: registerDelete}
 }
 
 func (dataServer *DataServer) GetValue(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +85,7 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 	if found {
 		status = http.StatusAccepted
 	} else {
+		dataServer.RegisterKey(key)
 		status = http.StatusCreated
 	}
 
@@ -107,6 +109,7 @@ func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	delete(dataServer.KVMap, key)
+	dataServer.RegisterDelete(key)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(([]byte)(http.StatusText(http.StatusOK)))
