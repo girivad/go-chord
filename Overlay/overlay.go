@@ -44,7 +44,7 @@ func (chordServer *ChordServer) RegisterKey(key string) {
 		return
 	}
 
-	chordServer.KeyIndex.Insert(key)
+	chordServer.KeyIndex.Insert(key, hash(key, chordServer.Capacity), nil)
 }
 
 func (chordServer *ChordServer) RegisterDelete(key string) {
@@ -53,7 +53,7 @@ func (chordServer *ChordServer) RegisterDelete(key string) {
 		return
 	}
 
-	chordServer.KeyIndex.Delete(key)
+	chordServer.KeyIndex.Delete(key, hash(key, chordServer.Capacity))
 }
 
 func NewChordServer(ip string, capacity int64) *ChordServer {
@@ -63,10 +63,10 @@ func NewChordServer(ip string, capacity int64) *ChordServer {
 		Capacity:    capacity,
 		Predecessor: nil,
 		FingerTable: make([]*ChordNode, capacity),
-		KeyIndex:    &BST{},
 	}
 
 	chordServer.KVStore = data.NewDataServer(chordServer.RegisterKey, chordServer.RegisterDelete)
+	chordServer.KeyIndex = &BST{}
 
 	return chordServer
 }
