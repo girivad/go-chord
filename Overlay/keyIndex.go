@@ -16,6 +16,8 @@ func NewKeyIndex(key string, hash int64, left *BST, right *BST, parent *BST) *BS
 	return keyIndex
 }
 
+// SINGLE-KEY OPERATIONS: Insert Key, Delete Key
+
 func (bst *BST) Insert(key string, hash int64, parent *BST) {
 	if !bst.Set {
 		bst.Key = key
@@ -43,20 +45,30 @@ func (bst *BST) Insert(key string, hash int64, parent *BST) {
 	}
 }
 
+func (bst *BST) Delete(key string, hash int64) {
+	if !bst.Set {
+		return
+	}
+
+	// Replace bst with the in-order successor if bst.Key == key
+}
+
+// BATCH-OPERATIONS: KeysToTransfer, (TO-DO) Insert Keys, Delete Keys
+
 // Retrieve all keys between my predecessor and a new node
-func (bst *BST) Search(predHash int64, newHash int64, currHash int64) []string {
+func (bst *BST) KeysToTransfer(predHash int64, newHash int64, currHash int64) []string {
 	if currHash > predHash {
-		return bst.SearchLeft(newHash)
+		return bst.KeysGreaterThan(newHash)
 	}
 
 	if newHash > predHash {
-		return bst.SearchBetween(predHash, newHash)
+		return bst.KeysBetween(predHash, newHash)
 	}
 
-	return append(bst.SearchRight(predHash), bst.SearchLeft(newHash)...)
+	return append(bst.KeysGreaterThan(predHash), bst.KeysLessThan(newHash)...)
 }
 
-func (bst *BST) SearchRight(lowerBound int64) []string {
+func (bst *BST) KeysGreaterThan(lowerBound int64) []string {
 
 	var keys []string
 
@@ -66,7 +78,7 @@ func (bst *BST) SearchRight(lowerBound int64) []string {
 
 	// If it is less than or equal to the newHash, return searchRight of the right subtree.
 	if bst.Hash <= lowerBound && bst.Right != nil {
-		return bst.Right.SearchRight(lowerBound)
+		return bst.Right.KeysGreaterThan(lowerBound)
 	} else if bst.Hash <= lowerBound {
 		return keys
 	}
@@ -75,16 +87,16 @@ func (bst *BST) SearchRight(lowerBound int64) []string {
 
 	// Return the traversal of the right subtree, and any elements of the left subtree that might be greater than the lower bound.
 	if bst.Right != nil {
-		keys = append(keys, bst.Right.Traverse()...)
+		keys = append(keys, bst.Right.AllKeys()...)
 	}
 	if bst.Left != nil {
-		keys = append(keys, bst.Left.SearchRight(lowerBound)...)
+		keys = append(keys, bst.Left.KeysGreaterThan(lowerBound)...)
 	}
 
 	return keys
 }
 
-func (bst *BST) SearchLeft(upperBound int64) []string {
+func (bst *BST) KeysLessThan(upperBound int64) []string {
 	var keys []string
 
 	if !bst.Set {
@@ -92,24 +104,24 @@ func (bst *BST) SearchLeft(upperBound int64) []string {
 	}
 
 	if bst.Hash > upperBound && bst.Left != nil {
-		return bst.Left.SearchLeft(upperBound)
+		return bst.Left.KeysLessThan(upperBound)
 	} else if bst.Hash > upperBound {
 		return keys
 	}
 
 	keys = append(keys, bst.Key)
 	if bst.Right != nil {
-		keys = append(keys, bst.Right.SearchLeft(upperBound)...)
+		keys = append(keys, bst.Right.KeysLessThan(upperBound)...)
 	}
 	if bst.Left != nil {
-		keys = append(keys, bst.Left.Traverse()...)
+		keys = append(keys, bst.Left.AllKeys()...)
 	}
 
 	return keys
 }
 
 // Finds all keys in (startHash, endHash]
-func (bst *BST) SearchBetween(startHash int64, endHash int64) []string {
+func (bst *BST) KeysBetween(startHash int64, endHash int64) []string {
 	var keys []string
 
 	if !bst.Set {
@@ -118,14 +130,14 @@ func (bst *BST) SearchBetween(startHash int64, endHash int64) []string {
 
 	// If Key too small:
 	if bst.Hash <= startHash && bst.Right != nil {
-		return bst.Right.SearchBetween(startHash, endHash)
+		return bst.Right.KeysBetween(startHash, endHash)
 	} else if bst.Hash < startHash {
 		return keys
 	}
 
 	// If Key too large:
 	if bst.Hash > endHash && bst.Left != nil {
-		return bst.Left.SearchBetween(startHash, endHash)
+		return bst.Left.KeysBetween(startHash, endHash)
 	} else if bst.Hash > endHash {
 		return keys
 	}
@@ -135,16 +147,16 @@ func (bst *BST) SearchBetween(startHash int64, endHash int64) []string {
 	keys = append(keys, bst.Key)
 
 	if bst.Right != nil {
-		keys = append(keys, bst.Right.SearchLeft(endHash)...)
+		keys = append(keys, bst.Right.KeysLessThan(endHash)...)
 	}
 	if bst.Left != nil {
-		keys = append(keys, bst.Left.SearchRight(startHash)...)
+		keys = append(keys, bst.Left.KeysGreaterThan(startHash)...)
 	}
 
 	return keys
 }
 
-func (bst *BST) Traverse() []string {
+func (bst *BST) AllKeys() []string {
 	var traversal []string
 	if !bst.Set {
 		return traversal
@@ -153,16 +165,12 @@ func (bst *BST) Traverse() []string {
 	traversal = append(traversal, bst.Key)
 
 	if bst.Left != nil {
-		traversal = append(traversal, bst.Left.Traverse()...)
+		traversal = append(traversal, bst.Left.AllKeys()...)
 	}
 
 	if bst.Right != nil {
-		traversal = append(traversal, bst.Right.Traverse()...)
+		traversal = append(traversal, bst.Right.AllKeys()...)
 	}
 
 	return traversal
-}
-
-func (bst *BST) Delete(key string, hash int64) {
-
 }

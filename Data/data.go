@@ -2,10 +2,13 @@ package data
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
+	pb "github.com/girivad/go-chord/Proto"
 	"github.com/gorilla/mux"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type Value struct {
@@ -117,4 +120,41 @@ func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 
 func (dataServer *DataServer) Serve(port int) {
 
+}
+
+func (dataServer *DataServer) GetValuesForTransfer(keys []string) (*pb.KVMap, error) {
+	kvMap := make(map[string]*pb.Value)
+	for _, key := range keys {
+		value, ok := dataServer.KVMap[key]
+		if !ok {
+			continue
+		}
+
+		byteValue, err := json.Marshal(value)
+
+		if err != nil {
+			fmt.Printf("byteValue marshalling failed: %v", err)
+			return nil, err
+		}
+
+		kvMap[key] = &pb.Value{Val: &anypb.Any{Value: byteValue}}
+	}
+	return &pb.KVMap{Kvmap: kvMap}, nil
+}
+
+func (dataServer *DataServer) PutValuesForTransfer(data *pb.KVMap) error {
+
+	for key, value := range data.Kvmap {
+		parsedValue := &Value{}
+		err := json.Unmarshal(value.Val.Value, parsedValue)
+
+		if err != nil {
+			fmt.Printf("Unmarshalling value failed: %v", err)
+			return err
+		}
+
+		dataServer.KVMap[key] = *parsedValue
+	}
+
+	return nil
 }
