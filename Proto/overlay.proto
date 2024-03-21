@@ -13,16 +13,24 @@ message KVMap{
     map<string, Value> kvmap = 1;
 }
 
+message IP{
+    google.protobuf.StringValue ip = 1;
+}
+
+message Hash{
+    google.protobuf.Int64Value hash = 1;
+}
+
 // getPredecessor {} => {IP: string}
 // updatePredecessor {IP: string} => {}
 service Predecessor{
-    rpc getPredecessor(google.protobuf.Empty) returns (google.protobuf.StringValue){}
-    rpc updatePredecessor(google.protobuf.StringValue) returns (google.protobuf.Empty){}
+    rpc getPredecessor(google.protobuf.Empty) returns (IP){}
+    rpc updatePredecessor(IP) returns (google.protobuf.Empty){}
 }
 
 // findSuccessor {hash: int} => {IP: string}
 service Lookup{
-    rpc findSuccessor(google.protobuf.Int64Value) returns (google.protobuf.StringValue){}
+    rpc findSuccessor(Hash) returns (IP){}
 }
 
 // check {} => {}

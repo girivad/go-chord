@@ -38,24 +38,6 @@ type ChordServer struct {
 	pb.UnimplementedDataServer
 }
 
-func (chordServer *ChordServer) RegisterKey(key string) {
-	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
-		fmt.Printf("Attempted to register Key %s with node %s, but doesn't belong here.\n", key, chordServer.IP)
-		return
-	}
-
-	chordServer.KeyIndex.Insert(key, hash(key, chordServer.Capacity), nil)
-}
-
-func (chordServer *ChordServer) RegisterDelete(key string) {
-	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
-		fmt.Printf("Attempted to register delete key %s at node %s, but doesn't belong here.\n", key, chordServer.IP)
-		return
-	}
-
-	chordServer.KeyIndex.Delete(key, hash(key, chordServer.Capacity))
-}
-
 func NewChordServer(ip string, capacity int64) *ChordServer {
 	chordServer := &ChordServer{
 		IP:          ip,
@@ -118,14 +100,16 @@ func Connect(ip string) (*ChordNode, error) {
 
 func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 	// Find successor
-	successorIpMsg, err := contactNode.LookupClient.FindSuccessor(context.Background(), &(wrapperspb.Int64Value{Value: chordServer.Hash}))
+	successorIpMsg, err := contactNode.LookupClient.FindSuccessor(context.Background(), &pb.Hash{
+		Hash: &(wrapperspb.Int64Value{Value: chordServer.Hash}),
+	})
 
 	if err != nil {
 		return err
 	}
 
 	// Set successor
-	chordServer.FingerTable[0], err = Connect(successorIpMsg.Value)
+	chordServer.FingerTable[0], err = Connect(successorIpMsg.Ip.Value)
 
 	if err != nil {
 		return err
@@ -138,7 +122,25 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 		return err
 	}
 
-	chordServer.Predecessor, err = Connect(predecessorIpMsg.Value)
+	chordServer.Predecessor, err = Connect(predecessorIpMsg.Ip.Value)
 
 	return err
+}
+
+func (chordServer *ChordServer) RegisterKey(key string) {
+	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
+		fmt.Printf("Attempted to register Key %s with node %s, but doesn't belong here.\n", key, chordServer.IP)
+		return
+	}
+
+	chordServer.KeyIndex.Insert(key, hash(key, chordServer.Capacity), nil)
+}
+
+func (chordServer *ChordServer) RegisterDelete(key string) {
+	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
+		fmt.Printf("Attempted to register delete key %s at node %s, but doesn't belong here.\n", key, chordServer.IP)
+		return
+	}
+
+	chordServer.KeyIndex.Delete(key, hash(key, chordServer.Capacity))
 }

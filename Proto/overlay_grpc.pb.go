@@ -12,7 +12,6 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -24,8 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PredecessorClient interface {
-	GetPredecessor(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
-	UpdatePredecessor(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetPredecessor(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IP, error)
+	UpdatePredecessor(ctx context.Context, in *IP, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type predecessorClient struct {
@@ -36,8 +35,8 @@ func NewPredecessorClient(cc grpc.ClientConnInterface) PredecessorClient {
 	return &predecessorClient{cc}
 }
 
-func (c *predecessorClient) GetPredecessor(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*wrapperspb.StringValue, error) {
-	out := new(wrapperspb.StringValue)
+func (c *predecessorClient) GetPredecessor(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IP, error) {
+	out := new(IP)
 	err := c.cc.Invoke(ctx, "/overlay.Predecessor/getPredecessor", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -45,7 +44,7 @@ func (c *predecessorClient) GetPredecessor(ctx context.Context, in *emptypb.Empt
 	return out, nil
 }
 
-func (c *predecessorClient) UpdatePredecessor(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *predecessorClient) UpdatePredecessor(ctx context.Context, in *IP, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/overlay.Predecessor/updatePredecessor", in, out, opts...)
 	if err != nil {
@@ -58,8 +57,8 @@ func (c *predecessorClient) UpdatePredecessor(ctx context.Context, in *wrappersp
 // All implementations must embed UnimplementedPredecessorServer
 // for forward compatibility
 type PredecessorServer interface {
-	GetPredecessor(context.Context, *emptypb.Empty) (*wrapperspb.StringValue, error)
-	UpdatePredecessor(context.Context, *wrapperspb.StringValue) (*emptypb.Empty, error)
+	GetPredecessor(context.Context, *emptypb.Empty) (*IP, error)
+	UpdatePredecessor(context.Context, *IP) (*emptypb.Empty, error)
 	mustEmbedUnimplementedPredecessorServer()
 }
 
@@ -67,10 +66,10 @@ type PredecessorServer interface {
 type UnimplementedPredecessorServer struct {
 }
 
-func (UnimplementedPredecessorServer) GetPredecessor(context.Context, *emptypb.Empty) (*wrapperspb.StringValue, error) {
+func (UnimplementedPredecessorServer) GetPredecessor(context.Context, *emptypb.Empty) (*IP, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPredecessor not implemented")
 }
-func (UnimplementedPredecessorServer) UpdatePredecessor(context.Context, *wrapperspb.StringValue) (*emptypb.Empty, error) {
+func (UnimplementedPredecessorServer) UpdatePredecessor(context.Context, *IP) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePredecessor not implemented")
 }
 func (UnimplementedPredecessorServer) mustEmbedUnimplementedPredecessorServer() {}
@@ -105,7 +104,7 @@ func _Predecessor_GetPredecessor_Handler(srv interface{}, ctx context.Context, d
 }
 
 func _Predecessor_UpdatePredecessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(wrapperspb.StringValue)
+	in := new(IP)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -117,7 +116,7 @@ func _Predecessor_UpdatePredecessor_Handler(srv interface{}, ctx context.Context
 		FullMethod: "/overlay.Predecessor/updatePredecessor",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PredecessorServer).UpdatePredecessor(ctx, req.(*wrapperspb.StringValue))
+		return srv.(PredecessorServer).UpdatePredecessor(ctx, req.(*IP))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -146,7 +145,7 @@ var Predecessor_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LookupClient interface {
-	FindSuccessor(ctx context.Context, in *wrapperspb.Int64Value, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
+	FindSuccessor(ctx context.Context, in *Hash, opts ...grpc.CallOption) (*IP, error)
 }
 
 type lookupClient struct {
@@ -157,8 +156,8 @@ func NewLookupClient(cc grpc.ClientConnInterface) LookupClient {
 	return &lookupClient{cc}
 }
 
-func (c *lookupClient) FindSuccessor(ctx context.Context, in *wrapperspb.Int64Value, opts ...grpc.CallOption) (*wrapperspb.StringValue, error) {
-	out := new(wrapperspb.StringValue)
+func (c *lookupClient) FindSuccessor(ctx context.Context, in *Hash, opts ...grpc.CallOption) (*IP, error) {
+	out := new(IP)
 	err := c.cc.Invoke(ctx, "/overlay.Lookup/findSuccessor", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -170,7 +169,7 @@ func (c *lookupClient) FindSuccessor(ctx context.Context, in *wrapperspb.Int64Va
 // All implementations must embed UnimplementedLookupServer
 // for forward compatibility
 type LookupServer interface {
-	FindSuccessor(context.Context, *wrapperspb.Int64Value) (*wrapperspb.StringValue, error)
+	FindSuccessor(context.Context, *Hash) (*IP, error)
 	mustEmbedUnimplementedLookupServer()
 }
 
@@ -178,7 +177,7 @@ type LookupServer interface {
 type UnimplementedLookupServer struct {
 }
 
-func (UnimplementedLookupServer) FindSuccessor(context.Context, *wrapperspb.Int64Value) (*wrapperspb.StringValue, error) {
+func (UnimplementedLookupServer) FindSuccessor(context.Context, *Hash) (*IP, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindSuccessor not implemented")
 }
 func (UnimplementedLookupServer) mustEmbedUnimplementedLookupServer() {}
@@ -195,7 +194,7 @@ func RegisterLookupServer(s grpc.ServiceRegistrar, srv LookupServer) {
 }
 
 func _Lookup_FindSuccessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(wrapperspb.Int64Value)
+	in := new(Hash)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -207,7 +206,7 @@ func _Lookup_FindSuccessor_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/overlay.Lookup/findSuccessor",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LookupServer).FindSuccessor(ctx, req.(*wrapperspb.Int64Value))
+		return srv.(LookupServer).FindSuccessor(ctx, req.(*Hash))
 	}
 	return interceptor(ctx, in, info, handler)
 }

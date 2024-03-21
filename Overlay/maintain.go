@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	pb "github.com/girivad/go-chord/Proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -18,8 +19,8 @@ func (chordServer *ChordServer) Notify() {
 	for {
 		time.Sleep(period)
 
-		_, err := chordServer.FingerTable[0].PredecessorClient.UpdatePredecessor(context.Background(), &wrapperspb.StringValue{
-			Value: chordServer.IP,
+		_, err := chordServer.FingerTable[0].PredecessorClient.UpdatePredecessor(context.Background(), &pb.IP{
+			Ip: &wrapperspb.StringValue{Value: chordServer.IP},
 		})
 
 		if err != nil {
@@ -69,16 +70,18 @@ func (chordServer *ChordServer) FixFingers() {
 			continue
 		}
 
-		newFingerIp, err := chordServer.FindSuccessor(context.Background(), &wrapperspb.Int64Value{Value: fingerStart})
+		newFingerIp, err := chordServer.FindSuccessor(context.Background(), &pb.Hash{
+			Hash: &wrapperspb.Int64Value{Value: fingerStart},
+		})
 
 		if err != nil {
 			log.Printf("[INFO] %s Unable to find %d finger due to %v, retrying...", chordServer.IP, fingerToUpdate, err)
 		}
 
-		newFinger, err := Connect(newFingerIp.Value)
+		newFinger, err := Connect(newFingerIp.Ip.Value)
 
 		if err != nil {
-			log.Printf("[INFO] %s Unable to connect to found %d finger %s due to %v, retrying...", chordServer.IP, fingerToUpdate, newFingerIp.Value, err)
+			log.Printf("[INFO] %s Unable to connect to found %d finger %s due to %v, retrying...", chordServer.IP, fingerToUpdate, newFingerIp.Ip.Value, err)
 
 			expired = isExpired()
 			if expired {
@@ -150,16 +153,16 @@ func (chordServer *ChordServer) Stabilize() {
 			continue
 		}
 
-		if !isBetween(hash(newSuccessorIp.Value, chordServer.Capacity), chordServer.Hash, hash(chordServer.FingerTable[0].Ip, chordServer.Capacity)) {
+		if !isBetween(hash(newSuccessorIp.Ip.Value, chordServer.Capacity), chordServer.Hash, hash(chordServer.FingerTable[0].Ip, chordServer.Capacity)) {
 			// chordServer is still the latest predecessor to its successor (i.e. no new nodes have joined in between them).
 			log.Printf("[INFO] %s is still the latest predecessor to %s.", chordServer.IP, chordServer.FingerTable[0].Ip)
 			continue
 		}
 
-		newSuccessor, err := Connect(newSuccessorIp.Value)
+		newSuccessor, err := Connect(newSuccessorIp.Ip.Value)
 
 		if err != nil {
-			log.Printf("[INFO] %s failed to connect with its new successor %s, retrying while retaining the old successor...", chordServer.IP, newSuccessorIp.Value)
+			log.Printf("[INFO] %s failed to connect with its new successor %s, retrying while retaining the old successor...", chordServer.IP, newSuccessorIp.Ip.Value)
 		}
 
 		chordServer.FingerTable[0] = newSuccessor

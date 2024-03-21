@@ -12,37 +12,37 @@ import (
 // Lookup Services
 // TO-DO: Update to handle timed contexts.
 
-func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *wrapperspb.Int64Value) (*wrapperspb.StringValue, error) {
+func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *pb.Hash) (*pb.IP, error) {
 	// Find the nearest predecessor and return its successor.
 
 	// Ask the latest finger before the key to find the successor.
 	for finger := chordServer.Capacity - 1; finger >= 0; finger-- {
-		if isBetween(hash(chordServer.FingerTable[finger].Ip, chordServer.Capacity), chordServer.Hash, keyHash.Value) {
+		if isBetween(hash(chordServer.FingerTable[finger].Ip, chordServer.Capacity), chordServer.Hash, keyHash.Hash.Value) {
 			ipMsg, err := chordServer.FingerTable[finger].LookupClient.FindSuccessor(ctx, keyHash)
 			return ipMsg, err
 		}
 	}
 
 	// If the key is between me and my successor, return my successor.
-	return &wrapperspb.StringValue{Value: chordServer.FingerTable[0].Ip}, nil
+	return &pb.IP{Ip: &wrapperspb.StringValue{Value: chordServer.FingerTable[0].Ip}}, nil
 }
 
 // Predecessor Services
 
-func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *emptypb.Empty) (*wrapperspb.StringValue, error) {
+func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *emptypb.Empty) (*pb.IP, error) {
 	if chordServer.Predecessor != nil {
-		return &wrapperspb.StringValue{
-			Value: chordServer.Predecessor.Ip,
+		return &pb.IP{
+			Ip: &wrapperspb.StringValue{Value: chordServer.Predecessor.Ip},
 		}, nil
 	}
 
 	return nil, errors.New("predecessor not known")
 }
 
-func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *wrapperspb.StringValue) (*emptypb.Empty, error) {
-	if isBetween(hash(ip.Value, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), chordServer.Hash) {
+func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *pb.IP) (*emptypb.Empty, error) {
+	if isBetween(hash(ip.Ip.Value, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), chordServer.Hash) {
 		var err error
-		newPredecessor, err := Connect(ip.Value)
+		newPredecessor, err := Connect(ip.Ip.Value)
 
 		data, err := chordServer.DataToTransfer(hash(newPredecessor.Ip, chordServer.Capacity))
 
