@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: Proto/overlay.proto
 
-package proto
+package overlay
 
 import (
 	context "context"
@@ -318,7 +318,7 @@ var Check_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataClient interface {
-	TransferData(ctx context.Context, in *wrapperspb.Int64Value, opts ...grpc.CallOption) (*KVMap, error)
+	TransferData(ctx context.Context, in *KVMap, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type dataClient struct {
@@ -329,8 +329,8 @@ func NewDataClient(cc grpc.ClientConnInterface) DataClient {
 	return &dataClient{cc}
 }
 
-func (c *dataClient) TransferData(ctx context.Context, in *wrapperspb.Int64Value, opts ...grpc.CallOption) (*KVMap, error) {
-	out := new(KVMap)
+func (c *dataClient) TransferData(ctx context.Context, in *KVMap, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/overlay.Data/transferData", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -342,7 +342,7 @@ func (c *dataClient) TransferData(ctx context.Context, in *wrapperspb.Int64Value
 // All implementations must embed UnimplementedDataServer
 // for forward compatibility
 type DataServer interface {
-	TransferData(context.Context, *wrapperspb.Int64Value) (*KVMap, error)
+	TransferData(context.Context, *KVMap) (*emptypb.Empty, error)
 	mustEmbedUnimplementedDataServer()
 }
 
@@ -350,7 +350,7 @@ type DataServer interface {
 type UnimplementedDataServer struct {
 }
 
-func (UnimplementedDataServer) TransferData(context.Context, *wrapperspb.Int64Value) (*KVMap, error) {
+func (UnimplementedDataServer) TransferData(context.Context, *KVMap) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TransferData not implemented")
 }
 func (UnimplementedDataServer) mustEmbedUnimplementedDataServer() {}
@@ -367,7 +367,7 @@ func RegisterDataServer(s grpc.ServiceRegistrar, srv DataServer) {
 }
 
 func _Data_TransferData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(wrapperspb.Int64Value)
+	in := new(KVMap)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func _Data_TransferData_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: "/overlay.Data/transferData",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServer).TransferData(ctx, req.(*wrapperspb.Int64Value))
+		return srv.(DataServer).TransferData(ctx, req.(*KVMap))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -30,7 +30,7 @@ service Check{
     rpc liveCheck(google.protobuf.Empty) returns (google.protobuf.Empty){}
 }
 
-// transferKeys {hash} => map<string, string>
+// transferKeys
 service Data{
-    rpc transferData(google.protobuf.Int64Value) returns (KVMap){}
+    rpc transferData(KVMap) returns (google.protobuf.Empty){}
 }
