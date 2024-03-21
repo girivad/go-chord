@@ -42,7 +42,16 @@ func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *empty
 func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *wrapperspb.StringValue) (*emptypb.Empty, error) {
 	if isBetween(hash(ip.Value, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), chordServer.Hash) {
 		var err error
-		chordServer.Predecessor, err = Connect(ip.Value)
+		newPredecessor, err := Connect(ip.Value)
+
+		data, err := chordServer.DataToTransfer(hash(newPredecessor.Ip, chordServer.Capacity))
+
+		newPredecessor.DataClient.TransferData(context.Background(), data)
+
+		// Transfer Data to this new predecessor using routines used in TransferDataIn/Out below
+
+		chordServer.Predecessor = newPredecessor
+
 		return &emptypb.Empty{}, err
 	}
 
@@ -56,6 +65,20 @@ func (chordServer *ChordServer) LiveCheck(ctx context.Context, empty *emptypb.Em
 }
 
 // Data Service: Transfer data to new owner
-func (chordServer *ChordServer) TransferData(ctx context.Context, nodeHash *wrapperspb.Int64Value) (*pb.KVMap, error) {
-	return nil, nil
+func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error) {
+	// TO-DO: Delete the keys.
+	// TO-DO^2: Have a different route to delete the keys or do so when acknowledged
+
+	predHash := hash(chordServer.Predecessor.Ip, chordServer.Capacity)
+	keys := chordServer.KeyIndex.KeysToTransfer(predHash, nodeHash, chordServer.Hash)
+
+	keyValuePairs, err := chordServer.KVStore.GetValuesForTransfer(keys)
+
+	return keyValuePairs, err
+}
+
+func (chordServer *ChordServer) TransferData(ctx context.Context, data *pb.KVMap) (*emptypb.Empty, error) {
+	err := chordServer.KVStore.PutValuesForTransfer(data)
+
+	return &emptypb.Empty{}, err
 }
