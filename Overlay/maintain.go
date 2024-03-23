@@ -168,7 +168,7 @@ func (chordServer *ChordServer) Stabilize() {
 			continue
 		}
 
-		if !isBetween(hash(newSuccessorIp.Ip.Value, chordServer.Capacity), chordServer.Hash, hash(chordServer.FingerTable[0].Ip, chordServer.Capacity)) {
+		if chordServer.FingerTable[0].Ip != chordServer.IP && !isBetween(hash(newSuccessorIp.Ip.Value, chordServer.Capacity), chordServer.Hash, hash(chordServer.FingerTable[0].Ip, chordServer.Capacity)) {
 			// chordServer is still the latest predecessor to its successor (i.e. no new nodes have joined in between them).
 			log.Printf("[INFO] %s is still the latest predecessor to %s.", chordServer.IP, chordServer.FingerTable[0].Ip)
 			continue
