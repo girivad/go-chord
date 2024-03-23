@@ -9,7 +9,6 @@ import (
 	pb "github.com/girivad/go-chord/Proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -72,8 +71,8 @@ func (chordServer *ChordServer) Serve() error {
 	go chordServer.KVStore.Serve(8080)
 	go chordServer.Notify()
 	go chordServer.FixFingers()
-	go chordServer.CheckPredecessor()
-	go chordServer.Stabilize()
+	// go chordServer.CheckPredecessor()
+	// go chordServer.Stabilize()
 
 	err = grpcServer.Serve(grpcListener)
 
@@ -115,15 +114,6 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 	if err != nil {
 		return err
 	}
-
-	// Ask successor for its predecessor, set as own
-	predecessorIpMsg, err := chordServer.FingerTable[0].PredecessorClient.GetPredecessor(context.Background(), &emptypb.Empty{})
-
-	if err != nil {
-		return err
-	}
-
-	chordServer.Predecessor, err = Connect(predecessorIpMsg.Ip.Value)
 
 	return err
 }
