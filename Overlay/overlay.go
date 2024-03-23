@@ -49,6 +49,7 @@ func NewChordServer(ip string, capacity int64) *ChordServer {
 
 	chordServer.KVStore = data.NewDataServer(chordServer.RegisterKey, chordServer.RegisterDelete)
 	chordServer.KeyIndex = &BST{}
+	chordServer.FingerTable[0] = &ChordNode{Ip: chordServer.IP}
 
 	return chordServer
 }
@@ -127,8 +128,19 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 	return err
 }
 
+func (chordServer *ChordServer) Leave() {
+
+	transferData := make(map[string]*pb.Value)
+
+	// for key, value := range chordServer.KVStore.KVMap {
+	// 	&pb.KVMap{}
+	// }
+
+	chordServer.FingerTable[0].DataClient.TransferData(context.Background(), &pb.KVMap{Kvmap: transferData})
+}
+
 func (chordServer *ChordServer) RegisterKey(key string) {
-	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
+	if chordServer.Predecessor != nil && !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
 		fmt.Printf("Attempted to register Key %s with node %s, but doesn't belong here.\n", key, chordServer.IP)
 		return
 	}
@@ -137,7 +149,7 @@ func (chordServer *ChordServer) RegisterKey(key string) {
 }
 
 func (chordServer *ChordServer) RegisterDelete(key string) {
-	if !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
+	if chordServer.Predecessor != nil && !isBetween(hash(key, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), hash(chordServer.IP, chordServer.Capacity)) {
 		fmt.Printf("Attempted to register delete key %s at node %s, but doesn't belong here.\n", key, chordServer.IP)
 		return
 	}

@@ -8,6 +8,7 @@ import (
 
 	pb "github.com/girivad/go-chord/Proto"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -45,6 +46,8 @@ func (dataServer *DataServer) GetValue(w http.ResponseWriter, r *http.Request) {
 
 	// Else, put in JSON and return
 
+	zap.L().Info("GET: K, V:", zap.String("key", key), zap.Any("value", value))
+
 	valBytes, err := json.Marshal(value)
 
 	if err != nil {
@@ -65,6 +68,7 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve Value from Body
+	defer r.Body.Close()
 	requestBody, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -79,6 +83,8 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest)+": invalid or no value provided.", http.StatusBadRequest)
 		return
 	}
+
+	zap.L().Info("PUT key, value:, err: ", zap.String("key", key), zap.String("Value:", (string)(requestBody)))
 
 	// Edit the key-value pair
 	_, found := dataServer.KVMap[key]
@@ -98,6 +104,8 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 
 func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
+
+	zap.L().Info("DEL key, value:", zap.String("key", key), zap.Any("value", dataServer.KVMap[key]))
 
 	if key == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest)+": No key provided.", http.StatusBadRequest)
@@ -119,7 +127,12 @@ func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 }
 
 func (dataServer *DataServer) Serve(port int) {
+	router := mux.NewRouter()
+	router.HandleFunc("/data/{key}", dataServer.GetValue).Methods("GET")
+	router.HandleFunc("/data/{key}", dataServer.PutValue).Methods("PUT")
+	router.HandleFunc("/data/{key}", dataServer.DeleteKV).Methods("DELETE")
 
+	http.ListenAndServe(fmt.Sprintf(":%d", port), router)
 }
 
 func (dataServer *DataServer) GetValuesForTransfer(keys []string) (*pb.KVMap, error) {

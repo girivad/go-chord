@@ -19,6 +19,7 @@ func main() {
 	}
 
 	flag.Parse()
+
 	ip := os.Args[1]
 	capacity, err := strconv.ParseInt(os.Args[2], 10, 64)
 
@@ -50,10 +51,13 @@ func main() {
 	}
 
 	// Serve data from 8080, gRPC through 8081.
-	err = chordServer.Serve()
+	go func() {
+		err = chordServer.Serve()
+		if err != nil {
+			fmt.Println("Failed to Serve Data/Services:", err)
+			os.Exit(1)
+		}
+	}()
 
-	if err != nil {
-		fmt.Println("Failed to Serve Data/Services:", err)
-		os.Exit(1)
-	}
+	select {}
 }

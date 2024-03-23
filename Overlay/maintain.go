@@ -19,6 +19,10 @@ func (chordServer *ChordServer) Notify() {
 	for {
 		time.Sleep(period)
 
+		if chordServer.FingerTable[0] == nil || chordServer.FingerTable[0].Ip == chordServer.IP {
+			continue
+		}
+
 		_, err := chordServer.FingerTable[0].PredecessorClient.UpdatePredecessor(context.Background(), &pb.IP{
 			Ip: &wrapperspb.StringValue{Value: chordServer.IP},
 		})
@@ -36,7 +40,9 @@ func (chordServer *ChordServer) Notify() {
 func (chordServer *ChordServer) FixFingers() {
 	retries := 0
 	expired := false
-	fingerToUpdate := 0
+
+	var fingerToUpdate, fingerStart int64
+	var newFinger *ChordNode
 
 	isExpired := func() bool {
 		retries++
@@ -51,10 +57,10 @@ func (chordServer *ChordServer) FixFingers() {
 	for {
 		time.Sleep(period)
 
-		fingerStart := (chordServer.Hash + 1<<(fingerToUpdate)) % (1 << chordServer.Capacity)
+		fingerStart = (chordServer.Hash + 1<<(fingerToUpdate)) % (1 << chordServer.Capacity)
 
-		if fingerToUpdate > 0 && !isBetween(hash(chordServer.FingerTable[fingerToUpdate-1].Ip, chordServer.Capacity), chordServer.Hash, fingerStart) {
-			newFinger, err := Connect(chordServer.FingerTable[fingerToUpdate-1].Ip)
+		if fingerToUpdate > 0 && isBetween(hash(chordServer.FingerTable[fingerToUpdate-1].Ip, chordServer.Capacity), fingerStart, chordServer.Hash) { // Use the previously updated finger if in the right segment of the ring.
+			newFinger, err := Connect(chordServer.FingerTable[fingerToUpdate-1].Ip) // Should just do chordServer.FingerTable[fingerToUpdate - 1]
 			if err == nil {
 				retries = 0
 				chordServer.FingerTable[fingerToUpdate] = newFinger
@@ -65,7 +71,7 @@ func (chordServer *ChordServer) FixFingers() {
 			expired = isExpired()
 			if expired {
 				log.Printf("[INFO] Retries for %dth finger expired, moving to next finger.", fingerToUpdate)
-				fingerToUpdate = (fingerToUpdate + 1)
+				fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
 			}
 			continue
 		}
@@ -78,24 +84,28 @@ func (chordServer *ChordServer) FixFingers() {
 			log.Printf("[INFO] %s Unable to find %d finger due to %v, retrying...", chordServer.IP, fingerToUpdate, err)
 		}
 
-		newFinger, err := Connect(newFingerIp.Ip.Value)
+		if newFingerIp.Ip.Value == chordServer.IP {
+			newFinger = &ChordNode{Ip: newFingerIp.Ip.Value}
+		} else {
+			newFinger, err = Connect(newFingerIp.Ip.Value)
 
-		if err != nil {
-			log.Printf("[INFO] %s Unable to connect to found %d finger %s due to %v, retrying...", chordServer.IP, fingerToUpdate, newFingerIp.Ip.Value, err)
+			if err != nil {
+				log.Printf("[INFO] %s Unable to connect to found %d finger %s due to %v, retrying...", chordServer.IP, fingerToUpdate, newFingerIp.Ip.Value, err)
 
-			expired = isExpired()
-			if expired {
-				log.Printf("[INFO] Retries for %dth finger expired, moving to next finger.", fingerToUpdate)
-				fingerToUpdate = (fingerToUpdate + 1)
+				expired = isExpired()
+				if expired {
+					log.Printf("[INFO] Retries for %dth finger expired, moving to next finger.", fingerToUpdate)
+					fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
+				}
+				continue
 			}
-			continue
 		}
 
 		chordServer.FingerTable[fingerToUpdate] = newFinger
 
 		log.Printf("[INFO] %s updated finger %d to %s", chordServer.IP, fingerToUpdate, newFinger.Ip)
 
-		fingerToUpdate = (fingerToUpdate + 1) % (1 << chordServer.Capacity)
+		fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
 
 		log.Printf("[INFO] %s to update finger %d next", chordServer.IP, fingerToUpdate)
 	}
@@ -146,6 +156,10 @@ func (chordServer *ChordServer) CheckPredecessor() {
 func (chordServer *ChordServer) Stabilize() {
 	for {
 		time.Sleep(period)
+
+		if chordServer.FingerTable[0] == nil || chordServer.FingerTable[0].Ip == chordServer.IP {
+			continue
+		}
 
 		newSuccessorIp, err := chordServer.FingerTable[0].PredecessorClient.GetPredecessor(context.Background(), &emptypb.Empty{})
 		if err != nil {

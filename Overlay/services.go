@@ -17,6 +17,11 @@ func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *pb.H
 
 	// Ask the latest finger before the key to find the successor.
 	for finger := chordServer.Capacity - 1; finger >= 0; finger-- {
+
+		if chordServer.FingerTable[finger] == nil || chordServer.FingerTable[finger].Ip == chordServer.IP {
+			continue
+		}
+
 		if isBetween(hash(chordServer.FingerTable[finger].Ip, chordServer.Capacity), chordServer.Hash, keyHash.Hash.Value) {
 			ipMsg, err := chordServer.FingerTable[finger].LookupClient.FindSuccessor(ctx, keyHash)
 			return ipMsg, err
@@ -44,15 +49,21 @@ func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *pb.IP
 		var err error
 		newPredecessor, err := Connect(ip.Ip.Value)
 
+		if err != nil {
+			return &emptypb.Empty{}, err
+		}
+
 		data, err := chordServer.DataToTransfer(hash(newPredecessor.Ip, chordServer.Capacity))
+
+		if err != nil {
+			return &emptypb.Empty{}, err
+		}
 
 		newPredecessor.DataClient.TransferData(context.Background(), data)
 
 		// Transfer Data to this new predecessor using routines used in TransferDataIn/Out below
 
 		chordServer.Predecessor = newPredecessor
-
-		return &emptypb.Empty{}, err
 	}
 
 	return &emptypb.Empty{}, nil
