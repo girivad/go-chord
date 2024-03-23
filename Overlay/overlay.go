@@ -37,7 +37,7 @@ type ChordServer struct {
 	pb.UnimplementedDataServer
 }
 
-func NewChordServer(ip string, capacity int64) *ChordServer {
+func NewChordServer(ip string, capacity int64) (*ChordServer, error) {
 	chordServer := &ChordServer{
 		IP:          ip,
 		Hash:        hash(ip, capacity),
@@ -48,9 +48,15 @@ func NewChordServer(ip string, capacity int64) *ChordServer {
 
 	chordServer.KVStore = data.NewDataServer(chordServer.RegisterKey, chordServer.RegisterDelete)
 	chordServer.KeyIndex = &BST{}
-	chordServer.FingerTable[0] = &ChordNode{Ip: chordServer.IP}
+	successor, err := Connect(ip)
 
-	return chordServer
+	if err != nil {
+		return nil, err
+	}
+
+	chordServer.FingerTable[0] = successor
+
+	return chordServer, nil
 }
 
 func (chordServer *ChordServer) Serve() error {

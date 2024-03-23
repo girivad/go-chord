@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 
@@ -31,7 +32,12 @@ func main() {
 	// TO-DO: Implement IP Verification (verify that this is a valid IP address, at least via Regex)
 
 	// Create a new ChordNode and join an existing chord ring if requested.
-	chordServer := overlay.NewChordServer(ip, capacity)
+	chordServer, err := overlay.NewChordServer(ip, capacity)
+
+	if err != nil {
+		log.Printf("[FATAL] Failed to connect to self.")
+		os.Exit(1)
+	}
 
 	if *contactPtr != "None" {
 		// Make a client for the contact, and then run a join service on it.
