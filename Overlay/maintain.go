@@ -20,6 +20,7 @@ func (chordServer *ChordServer) Notify() {
 		time.Sleep(period)
 
 		if chordServer.FingerTable[0] == nil || chordServer.FingerTable[0].Ip == chordServer.IP {
+			log.Printf("No successor to notify.")
 			continue
 		}
 
@@ -28,9 +29,9 @@ func (chordServer *ChordServer) Notify() {
 		})
 
 		if err != nil {
-			log.Printf("[INFO] %s unable to notify succesor %s due to err %v", chordServer.IP, chordServer.FingerTable[0].Ip, err)
+			log.Printf("Unable to notify succesor %s due to err: %v", chordServer.FingerTable[0].Ip, err)
 		} else {
-			log.Printf("[INFO] %s notified %s that %s is its predecessor.", chordServer.IP, chordServer.FingerTable[0].Ip, chordServer.IP)
+			log.Printf("Notified successor %s", chordServer.FingerTable[0].Ip)
 		}
 	}
 }

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	pb "github.com/girivad/go-chord/Proto"
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
@@ -46,7 +46,7 @@ func (dataServer *DataServer) GetValue(w http.ResponseWriter, r *http.Request) {
 
 	// Else, put in JSON and return
 
-	zap.L().Info("GET: K, V:", zap.String("key", key), zap.Any("value", value))
+	log.Printf("GET: K: %s, V: %v", key, value)
 
 	valBytes, err := json.Marshal(value)
 
@@ -84,7 +84,7 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zap.L().Info("PUT key, value:, err: ", zap.String("key", key), zap.String("Value:", (string)(requestBody)))
+	log.Printf("PUT key: %s, value: %v", key, value)
 
 	// Edit the key-value pair
 	_, found := dataServer.KVMap[key]
@@ -105,7 +105,7 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 
-	zap.L().Info("DEL key, value:", zap.String("key", key), zap.Any("value", dataServer.KVMap[key]))
+	log.Printf("DEL key: %s, value:%v", key, dataServer.KVMap[key])
 
 	if key == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest)+": No key provided.", http.StatusBadRequest)
