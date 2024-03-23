@@ -86,20 +86,20 @@ func (chordServer *ChordServer) FixFingers() {
 		}
 
 		if newFingerIp.Ip.Value == chordServer.IP {
-			newFinger = &ChordNode{Ip: newFingerIp.Ip.Value}
-		} else {
-			newFinger, err = Connect(newFingerIp.Ip.Value)
+			log.Printf("[INFO] %s still getting itself as successor", chordServer.IP)
+			continue
+		}
 
-			if err != nil {
-				log.Printf("[INFO] %s Unable to connect to found %d finger %s due to %v, retrying...", chordServer.IP, fingerToUpdate, newFingerIp.Ip.Value, err)
+		newFinger, err = Connect(newFingerIp.Ip.Value)
+		if err != nil {
+			log.Printf("[INFO] %s Unable to connect to found %d finger %s due to %v, retrying...", chordServer.IP, fingerToUpdate, newFingerIp.Ip.Value, err)
 
-				expired = isExpired()
-				if expired {
-					log.Printf("[INFO] Retries for %dth finger expired, moving to next finger.", fingerToUpdate)
-					fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
-				}
-				continue
+			expired = isExpired()
+			if expired {
+				log.Printf("[INFO] Retries for %dth finger expired, moving to next finger.", fingerToUpdate)
+				fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
 			}
+			continue
 		}
 
 		chordServer.FingerTable[fingerToUpdate] = newFinger
