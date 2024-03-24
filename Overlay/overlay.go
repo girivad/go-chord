@@ -60,6 +60,10 @@ func NewChordServer(ip string, capacity int64) (*ChordServer, error) {
 	}
 	chordServer.FingerTable[0] = successor
 
+	for finger := 0; finger < int(capacity); finger++ {
+		chordServer.FingerMuxs[finger] = &sync.RWMutex{}
+	}
+
 	return chordServer, nil
 }
 

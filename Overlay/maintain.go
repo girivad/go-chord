@@ -150,6 +150,7 @@ func (chordServer *ChordServer) CheckPredecessor() {
 		chordServer.PredecessorMux.RLock()
 
 		if chordServer.Predecessor == nil {
+			log.Printf("[INFO] No predecessor to check.")
 			chordServer.PredecessorMux.RUnlock()
 			continue
 		}
@@ -184,11 +185,6 @@ func (chordServer *ChordServer) Stabilize() {
 
 		chordServer.FingerMuxs[0].RLock()
 		successorIP := chordServer.FingerTable[0].Ip
-
-		if successorIP == chordServer.IP {
-			chordServer.FingerMuxs[0].RUnlock()
-			continue
-		}
 
 		newSuccessorIp, err := chordServer.FingerTable[0].PredecessorClient.GetPredecessor(context.Background(), &emptypb.Empty{})
 
