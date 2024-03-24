@@ -103,6 +103,12 @@ func (chordServer *ChordServer) FixFingers() {
 
 		if err != nil {
 			log.Printf("[INFO] %s Unable to find %d finger due to %v, retrying...", chordServer.IP, fingerToUpdate, err)
+			expired = isExpired()
+			if expired {
+				log.Printf("[INFO] Retries for %dth finger expired, moving to next finger.", fingerToUpdate)
+				fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
+			}
+			continue
 		}
 
 		log.Printf("[INFO] FF: New Finger %d is %s", fingerToUpdate, newFingerIp.Ip.Value)
