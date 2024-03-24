@@ -18,9 +18,12 @@ const MaxRetries int = 3
 func (chordServer *ChordServer) Notify() {
 	for {
 		time.Sleep(period)
+		chordServer.FingerMuxs[0].RLock()
+		successorIP := chordServer.FingerTable[0].Ip
 
-		if chordServer.FingerTable[0] == nil || chordServer.FingerTable[0].Ip == chordServer.IP {
-			log.Printf("No successor to notify.")
+		if successorIP == chordServer.IP {
+			log.Printf("[INFO] No successor to notify.")
+			chordServer.FingerMuxs[0].RUnlock()
 			continue
 		}
 
@@ -28,10 +31,12 @@ func (chordServer *ChordServer) Notify() {
 			Ip: &wrapperspb.StringValue{Value: chordServer.IP},
 		})
 
+		chordServer.FingerMuxs[0].RUnlock()
+
 		if err != nil {
-			log.Printf("Unable to notify succesor %s due to err: %v", chordServer.FingerTable[0].Ip, err)
+			log.Printf("[DEBUG] Unable to notify succesor %s due to err: %v", successorIP, err)
 		} else {
-			log.Printf("Notified successor %s", chordServer.FingerTable[0].Ip)
+			log.Printf("[INFO] Notified successor %s", successorIP)
 		}
 	}
 }
@@ -44,6 +49,7 @@ func (chordServer *ChordServer) FixFingers() {
 
 	var fingerToUpdate, fingerStart int64
 	var newFinger *ChordNode
+	var previousFingerIP string
 
 	isExpired := func() bool {
 		retries++
@@ -60,13 +66,23 @@ func (chordServer *ChordServer) FixFingers() {
 
 		fingerStart = (chordServer.Hash + 1<<(fingerToUpdate)) % (1 << chordServer.Capacity)
 
-		if fingerToUpdate > 0 && isBetween(hash(chordServer.FingerTable[fingerToUpdate-1].Ip, chordServer.Capacity), fingerStart, chordServer.Hash) { // Use the previously updated finger if in the right segment of the ring.
-			newFinger, err := Connect(chordServer.FingerTable[fingerToUpdate-1].Ip) // Should just do chordServer.FingerTable[fingerToUpdate - 1]
+		if fingerToUpdate > 0 {
+			chordServer.FingerMuxs[fingerToUpdate-1].RLock()
+			previousFingerIP = chordServer.FingerTable[fingerToUpdate-1].Ip
+		}
+
+		if fingerToUpdate > 0 && isBetween(hash(previousFingerIP, chordServer.Capacity), fingerStart, chordServer.Hash) { // Use the previously updated finger if in the right segment of the ring.
+			chordServer.FingerMuxs[fingerToUpdate-1].RUnlock()
+			newFinger, err := Connect(previousFingerIP) // Could do chordServer.FingerTable[fingerToUpdate - 1], but the lock would tremendously slow down most operations if all fingers are the same node. Worth thinking about.
 			if err == nil {
-				retries = 0
+				chordServer.FingerMuxs[fingerToUpdate].Lock()
 				chordServer.FingerTable[fingerToUpdate] = newFinger
+				chordServer.FingerMuxs[fingerToUpdate].Unlock()
+
 				log.Printf("[INFO] %s copied the previous finger %s to finger %d.", chordServer.IP, newFinger.Ip, fingerToUpdate)
-				return
+
+				retries = 0
+				continue
 			}
 
 			expired = isExpired()
@@ -101,8 +117,9 @@ func (chordServer *ChordServer) FixFingers() {
 			}
 			continue
 		}
-
+		chordServer.FingerMuxs[fingerToUpdate].Lock()
 		chordServer.FingerTable[fingerToUpdate] = newFinger
+		chordServer.FingerMuxs[fingerToUpdate].Unlock()
 
 		log.Printf("[INFO] %s updated finger %d to %s", chordServer.IP, fingerToUpdate, newFinger.Ip)
 
@@ -130,11 +147,16 @@ func (chordServer *ChordServer) CheckPredecessor() {
 	for {
 		time.Sleep(period)
 
+		chordServer.PredecessorMux.RLock()
+
 		if chordServer.Predecessor == nil {
+			chordServer.PredecessorMux.RUnlock()
 			continue
 		}
 
 		_, err := chordServer.Predecessor.CheckClient.LiveCheck(context.Background(), &emptypb.Empty{})
+
+		chordServer.PredecessorMux.RUnlock()
 
 		if err != nil {
 
@@ -144,7 +166,9 @@ func (chordServer *ChordServer) CheckPredecessor() {
 			}
 
 			log.Printf("[INFO] %s's predecessor did not respond to liveness check due to %v and was set to nil", chordServer.IP, err)
+			chordServer.PredecessorMux.Lock()
 			chordServer.Predecessor = nil
+			chordServer.PredecessorMux.Unlock()
 			retries = 0
 			continue
 		}
@@ -158,19 +182,26 @@ func (chordServer *ChordServer) Stabilize() {
 	for {
 		time.Sleep(period)
 
-		if chordServer.FingerTable[0] == nil || chordServer.FingerTable[0].Ip == chordServer.IP {
+		chordServer.FingerMuxs[0].RLock()
+		successorIP := chordServer.FingerTable[0].Ip
+
+		if successorIP == chordServer.IP {
+			chordServer.FingerMuxs[0].RUnlock()
 			continue
 		}
 
 		newSuccessorIp, err := chordServer.FingerTable[0].PredecessorClient.GetPredecessor(context.Background(), &emptypb.Empty{})
+
+		chordServer.FingerMuxs[0].RUnlock()
+
 		if err != nil {
-			log.Printf("[INFO] %s's successor %s failed to provide its predecessor due to %v", chordServer.IP, chordServer.FingerTable[0].Ip, err)
+			log.Printf("[INFO] %s's successor %s failed to provide its predecessor due to %v", chordServer.IP, successorIP, err)
 			continue
 		}
 
-		if chordServer.FingerTable[0].Ip != chordServer.IP && !isBetween(hash(newSuccessorIp.Ip.Value, chordServer.Capacity), chordServer.Hash, hash(chordServer.FingerTable[0].Ip, chordServer.Capacity)) {
+		if successorIP != chordServer.IP && !isBetween(hash(newSuccessorIp.Ip.Value, chordServer.Capacity), chordServer.Hash, hash(successorIP, chordServer.Capacity)) {
 			// chordServer is still the latest predecessor to its successor (i.e. no new nodes have joined in between them).
-			log.Printf("[INFO] %s is still the latest predecessor to %s.", chordServer.IP, chordServer.FingerTable[0].Ip)
+			log.Printf("[INFO] %s is still the latest predecessor to %s.", chordServer.IP, successorIP)
 			continue
 		}
 
@@ -180,8 +211,12 @@ func (chordServer *ChordServer) Stabilize() {
 			log.Printf("[INFO] %s failed to connect with its new successor %s, retrying while retaining the old successor...", chordServer.IP, newSuccessorIp.Ip.Value)
 		}
 
+		chordServer.FingerMuxs[0].Lock()
+
 		chordServer.FingerTable[0] = newSuccessor
 
-		log.Printf("[INFO] %s is %s's new successor.", chordServer.FingerTable[0].Ip, chordServer.IP)
+		chordServer.FingerMuxs[0].Unlock()
+
+		log.Printf("[INFO] %s is %s's new successor.", newSuccessorIp, chordServer.IP)
 	}
 }

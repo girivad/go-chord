@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	data "github.com/girivad/go-chord/Data"
 	pb "github.com/girivad/go-chord/Proto"
@@ -24,13 +25,15 @@ type ChordNode struct {
 
 // The local server
 type ChordServer struct {
-	KVStore     *data.DataServer
-	IP          string
-	Hash        int64
-	Capacity    int64
-	Predecessor *ChordNode
-	FingerTable []*ChordNode
-	KeyIndex    *BST
+	KVStore        *data.DataServer
+	IP             string
+	Hash           int64
+	Capacity       int64
+	Predecessor    *ChordNode
+	FingerTable    []*ChordNode
+	KeyIndex       *BST
+	FingerMuxs     []*sync.RWMutex
+	PredecessorMux *sync.RWMutex
 	pb.UnimplementedLookupServer
 	pb.UnimplementedPredecessorServer
 	pb.UnimplementedCheckServer
@@ -39,21 +42,22 @@ type ChordServer struct {
 
 func NewChordServer(ip string, capacity int64) (*ChordServer, error) {
 	chordServer := &ChordServer{
-		IP:          ip,
-		Hash:        hash(ip, capacity),
-		Capacity:    capacity,
-		Predecessor: nil,
-		FingerTable: make([]*ChordNode, capacity),
+		IP:             ip,
+		Hash:           hash(ip, capacity),
+		Capacity:       capacity,
+		Predecessor:    nil,
+		FingerTable:    make([]*ChordNode, capacity),
+		FingerMuxs:     make([]*sync.RWMutex, capacity),
+		PredecessorMux: &sync.RWMutex{},
 	}
 
 	chordServer.KVStore = data.NewDataServer(chordServer.RegisterKey, chordServer.RegisterDelete)
 	chordServer.KeyIndex = &BST{}
-	successor, err := Connect(ip)
 
+	successor, err := Connect(ip)
 	if err != nil {
 		return nil, err
 	}
-
 	chordServer.FingerTable[0] = successor
 
 	return chordServer, nil
@@ -77,8 +81,8 @@ func (chordServer *ChordServer) Serve() error {
 	go chordServer.KVStore.Serve(8080)
 	go chordServer.Notify()
 	go chordServer.FixFingers()
-	// go chordServer.CheckPredecessor()
-	// go chordServer.Stabilize()
+	go chordServer.CheckPredecessor()
+	go chordServer.Stabilize()
 
 	err = grpcServer.Serve(grpcListener)
 

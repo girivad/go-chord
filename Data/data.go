@@ -46,7 +46,7 @@ func (dataServer *DataServer) GetValue(w http.ResponseWriter, r *http.Request) {
 
 	// Else, put in JSON and return
 
-	log.Printf("GET: K: %s, V: %v", key, value)
+	log.Printf("[INFO] GET: K: %s, V: %v", key, value)
 
 	valBytes, err := json.Marshal(value)
 
@@ -84,7 +84,7 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("PUT key: %s, value: %v", key, value)
+	log.Printf("[INFO] PUT key: %s, value: %v", key, value)
 
 	// Edit the key-value pair
 	_, found := dataServer.KVMap[key]
@@ -105,7 +105,7 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 
-	log.Printf("DEL key: %s, value:%v", key, dataServer.KVMap[key])
+	log.Printf("[INFO] DEL key: %s, value:%v", key, dataServer.KVMap[key])
 
 	if key == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest)+": No key provided.", http.StatusBadRequest)
