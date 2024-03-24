@@ -59,11 +59,19 @@ func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *empty
 }
 
 func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *pb.IP) (*emptypb.Empty, error) {
+	var predecessorIP string
+
 	chordServer.PredecessorMux.RLock()
 
-	if isBetween(hash(ip.Ip.Value, chordServer.Capacity), hash(chordServer.Predecessor.Ip, chordServer.Capacity), chordServer.Hash) {
-		chordServer.PredecessorMux.RUnlock()
+	if chordServer.Predecessor != nil {
+		predecessorIP = chordServer.Predecessor.Ip
+	} else {
+		predecessorIP = ""
+	}
 
+	chordServer.PredecessorMux.RUnlock()
+
+	if predecessorIP == "" || isBetween(hash(ip.Ip.Value, chordServer.Capacity), hash(predecessorIP, chordServer.Capacity), chordServer.Hash) {
 		var err error
 		newPredecessor, err := Connect(ip.Ip.Value)
 
@@ -84,8 +92,6 @@ func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *pb.IP
 		chordServer.PredecessorMux.Unlock()
 	}
 
-	chordServer.PredecessorMux.RUnlock()
-
 	return &emptypb.Empty{}, nil
 }
 
@@ -99,8 +105,20 @@ func (chordServer *ChordServer) LiveCheck(ctx context.Context, empty *emptypb.Em
 func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error) {
 	// TO-DO: Delete the keys.
 	// TO-DO^2: Have a different route to delete the keys or do so when acknowledged
+	// If predecessor is nil, it should transfer
 
-	predHash := hash(chordServer.Predecessor.Ip, chordServer.Capacity)
+	var predHash int64
+
+	chordServer.PredecessorMux.RLock()
+	if chordServer.Predecessor != nil {
+		predecessorIP := chordServer.Predecessor.Ip
+		predHash = hash(predecessorIP, chordServer.Capacity)
+	} else {
+		predHash = (hash(chordServer.IP, chordServer.Capacity) + 1) % (1 << chordServer.Capacity)
+	}
+
+	chordServer.PredecessorMux.RUnlock()
+
 	keys := chordServer.KeyIndex.KeysToTransfer(predHash, nodeHash, chordServer.Hash)
 
 	keyValuePairs, err := chordServer.KVStore.GetValuesForTransfer(keys)

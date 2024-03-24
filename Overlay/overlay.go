@@ -3,6 +3,7 @@ package overlay
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"sync"
 
@@ -121,6 +122,8 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("[INFO] %s joining chord ring of %s: successor is %s", chordServer.IP, contactNode.Ip, successorIpMsg.Ip.Value)
 
 	// Set successor
 	chordServer.FingerTable[0], err = Connect(successorIpMsg.Ip.Value)
