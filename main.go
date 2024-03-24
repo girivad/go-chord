@@ -39,11 +39,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Printf("[INFO] Contact in the Chord Ring: %s", contact)
-
 	if contact != "None" {
 		// Make a client for the contact, and then run a join service on it.
-		log.Printf("Contact:%s", contact)
+		log.Printf("[INFO] Contact in the Chord Ring: %s", contact)
 		contactNode, err := overlay.Connect(contact)
 
 		if err != nil {

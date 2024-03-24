@@ -18,6 +18,7 @@ const MaxRetries int = 3
 func (chordServer *ChordServer) Notify() {
 	for {
 		time.Sleep(period)
+		log.Printf("[INFO] Notifying successor %s", chordServer.FingerTable[0].Ip)
 		chordServer.FingerMuxs[0].RLock()
 		successorIP := chordServer.FingerTable[0].Ip
 
@@ -63,6 +64,7 @@ func (chordServer *ChordServer) FixFingers() {
 
 	for {
 		time.Sleep(period)
+		log.Printf("[INFO] Fixing Finger %d...", fingerToUpdate)
 
 		fingerStart = (chordServer.Hash + 1<<(fingerToUpdate)) % (1 << chordServer.Capacity)
 
@@ -91,6 +93,8 @@ func (chordServer *ChordServer) FixFingers() {
 				fingerToUpdate = (fingerToUpdate + 1) % chordServer.Capacity
 			}
 			continue
+		} else if fingerToUpdate > 0 {
+			chordServer.FingerMuxs[fingerToUpdate-1].RUnlock()
 		}
 
 		newFingerIp, err := chordServer.FindSuccessor(context.Background(), &pb.Hash{
@@ -101,8 +105,10 @@ func (chordServer *ChordServer) FixFingers() {
 			log.Printf("[INFO] %s Unable to find %d finger due to %v, retrying...", chordServer.IP, fingerToUpdate, err)
 		}
 
+		log.Printf("[INFO] FF: New Finger %d is %s", fingerToUpdate, newFingerIp.Ip.Value)
+
 		if newFingerIp.Ip.Value == chordServer.IP {
-			log.Printf("[INFO] %s still getting itself as successor", chordServer.IP)
+			log.Printf("[INFO] %s still getting itself as finger %d", chordServer.IP, fingerToUpdate)
 			continue
 		}
 
@@ -182,6 +188,7 @@ func (chordServer *ChordServer) CheckPredecessor() {
 func (chordServer *ChordServer) Stabilize() {
 	for {
 		time.Sleep(period)
+		log.Println("[INFO] Stabilizing...")
 
 		chordServer.FingerMuxs[0].RLock()
 		successorIP := chordServer.FingerTable[0].Ip

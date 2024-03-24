@@ -3,6 +3,7 @@ package overlay
 import (
 	"context"
 	"errors"
+	"log"
 
 	pb "github.com/girivad/go-chord/Proto"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -14,17 +15,20 @@ import (
 
 func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *pb.Hash) (*pb.IP, error) {
 	// Find the nearest predecessor and return its successor.
+	log.Printf("[DEBUG] Find Successor Invoked")
+	defer log.Printf("[DEBUG] Find Successor Completed.")
 
 	// Ask the latest finger before the key to find the successor.
 	for finger := chordServer.Capacity - 1; finger >= 0; finger-- {
-
 		chordServer.FingerMuxs[finger].RLock()
 
 		if chordServer.FingerTable[finger] == nil || chordServer.FingerTable[finger].Ip == chordServer.IP {
+			chordServer.FingerMuxs[finger].RUnlock()
 			continue
 		}
 
 		if isBetween(hash(chordServer.FingerTable[finger].Ip, chordServer.Capacity), chordServer.Hash, keyHash.Hash.Value) {
+			log.Printf("[INFO] Find Successor Transferred to %s", chordServer.FingerTable[finger].Ip)
 			ipMsg, err := chordServer.FingerTable[finger].LookupClient.FindSuccessor(ctx, keyHash)
 			return ipMsg, err
 		}
@@ -43,6 +47,9 @@ func (chordServer *ChordServer) FindSuccessor(ctx context.Context, keyHash *pb.H
 // Predecessor Services
 
 func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *emptypb.Empty) (*pb.IP, error) {
+	log.Printf("[DEBUG] Get Predecessor Invoked.")
+	defer log.Printf("[DEBUG] Get Predecessor Completed.")
+
 	chordServer.PredecessorMux.RLock()
 	if chordServer.Predecessor != nil {
 		predecessorIP := chordServer.Predecessor.Ip
@@ -59,6 +66,10 @@ func (chordServer *ChordServer) GetPredecessor(ctx context.Context, empty *empty
 }
 
 func (chordServer *ChordServer) UpdatePredecessor(ctx context.Context, ip *pb.IP) (*emptypb.Empty, error) {
+
+	log.Printf("[DEBUG] Update Predecessor Invoked.")
+	defer log.Printf("[DEBUG] Update Predecessor Completed.")
+
 	var predecessorIP string
 
 	chordServer.PredecessorMux.RLock()
