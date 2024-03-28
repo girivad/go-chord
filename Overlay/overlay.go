@@ -153,6 +153,8 @@ func (chordServer *ChordServer) RegisterKey(key string) {
 	}
 
 	chordServer.KeyIndex.Insert(key, hash(key, chordServer.Capacity), nil)
+	log.Printf("[INFO] Post-Insert %s", key)
+	chordServer.KeyIndex.Visualize()
 }
 
 func (chordServer *ChordServer) RegisterDelete(key string) {
@@ -162,4 +164,7 @@ func (chordServer *ChordServer) RegisterDelete(key string) {
 	}
 
 	chordServer.KeyIndex.Delete(key, hash(key, chordServer.Capacity))
+
+	log.Printf("[INFO] Post-Delete %s", key)
+	chordServer.KeyIndex.Visualize()
 }

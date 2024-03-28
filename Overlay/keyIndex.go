@@ -1,5 +1,7 @@
 package overlay
 
+import "log"
+
 type BST struct {
 	Key    string
 	Hash   int64
@@ -238,4 +240,27 @@ func (bst *BST) AllKeys() []string {
 	}
 
 	return traversal
+}
+
+func (bst *BST) Visualize() {
+	if !bst.Set {
+		return
+	}
+
+	var leftKey, rightKey string
+	if bst.Left != nil && bst.Left.Set {
+		leftKey = bst.Left.Key
+	}
+	if bst.Right != nil && bst.Right.Set {
+		rightKey = bst.Right.Key
+	}
+
+	log.Printf("[INFO] %s: L %s R %s", bst.Key, leftKey, rightKey)
+
+	if bst.Left != nil {
+		bst.Left.Visualize()
+	}
+	if bst.Right != nil {
+		bst.Right.Visualize()
+	}
 }
