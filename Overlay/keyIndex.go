@@ -1,7 +1,5 @@
 package overlay
 
-import "fmt"
-
 type BST struct {
 	Key    string
 	Hash   int64
@@ -22,7 +20,6 @@ func (bst *BST) Insert(key string, hash int64, parent *BST) {
 	if !bst.Set {
 		bst.Key = key
 		bst.Hash = hash
-		// Not quite sure that we need the parent.
 		bst.Parent = parent
 		bst.Set = true
 		return
@@ -34,23 +31,91 @@ func (bst *BST) Insert(key string, hash int64, parent *BST) {
 		} else {
 			bst.Left = NewKeyIndex(key, hash, nil, nil, bst)
 		}
-	} else if hash > bst.Hash {
+	} else if hash >= bst.Hash {
 		if bst.Right != nil {
 			bst.Right.Insert(key, hash, bst)
 		} else {
 			bst.Right = NewKeyIndex(key, hash, nil, nil, bst)
 		}
-	} else {
-		fmt.Printf("Tried to insert duplicate key %s into BST", key)
 	}
 }
 
-func (bst *BST) Delete(key string, hash int64) {
-	if !bst.Set {
+func (bst *BST) Leftmost() *BST {
+	if bst.Left != nil && bst.Left.Set {
+		return bst.Left.Leftmost()
+	}
+
+	return bst
+}
+
+func (bst *BST) Rightmost() *BST {
+	if bst.Right != nil && bst.Right.Set {
+		return bst.Right.Rightmost()
+	}
+
+	return bst
+}
+
+func (bst *BST) DeleteLeaf() {
+	if bst.Parent == nil {
+		bst.Set = false
 		return
 	}
 
-	// Replace bst with the in-order successor if bst.Key == key
+	if bst.Parent.Hash < bst.Hash {
+		bst.Parent.Right = nil
+	} else {
+		bst.Parent.Left = nil
+	}
+}
+
+func (bst *BST) Delete(key string, hash int64) bool {
+	var found bool
+	var swapNode *BST
+
+	if !bst.Set {
+		return false
+	}
+
+	if bst.Hash < hash {
+		if bst.Right != nil {
+			found = bst.Right.Delete(key, hash)
+		}
+		return found
+	}
+
+	if bst.Hash > hash {
+		if bst.Left != nil {
+			found = bst.Left.Delete(key, hash)
+		}
+		return found
+	}
+
+	if bst.Key != key {
+		if bst.Left != nil {
+			found = bst.Left.Delete(key, hash)
+		}
+		if bst.Right != nil {
+			found = found || bst.Right.Delete(key, hash)
+		}
+		return found
+	}
+
+	// Replace bst with the in-order successor/predecessor if bst.Key == key
+
+	if bst.Right != nil && bst.Right.Set {
+		swapNode = bst.Right.Leftmost()
+	} else if bst.Left != nil && bst.Left.Set {
+		swapNode = bst.Left.Rightmost()
+	} else {
+		swapNode = bst
+	}
+
+	bst.Key = swapNode.Key
+	bst.Hash = swapNode.Hash
+	swapNode.DeleteLeaf()
+
+	return true
 }
 
 // BATCH-OPERATIONS: KeysToTransfer, (TO-DO) Insert Keys, Delete Keys
