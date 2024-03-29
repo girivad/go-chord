@@ -2,11 +2,54 @@ package overlay
 
 import (
 	"log"
+	"sync"
 
 	pb "github.com/girivad/go-chord/Proto"
 )
 
 // To-do: Implement KeyIndex containing BST + Lock
+
+type KeyIndex struct {
+	root *BST
+	lock sync.RWMutex
+}
+
+func NewKeyIndex() *KeyIndex {
+	return &KeyIndex{
+		root: new(BST),
+	}
+}
+
+func (keyIndex *KeyIndex) Insert(key string, hash int64) {
+	keyIndex.lock.Lock()
+	keyIndex.root.Insert(key, hash, nil)
+	keyIndex.lock.Unlock()
+}
+
+func (keyIndex *KeyIndex) Delete(key string, hash int64) {
+	keyIndex.lock.Lock()
+	keyIndex.root.Delete(key, hash)
+	keyIndex.lock.Unlock()
+}
+
+func (keyIndex *KeyIndex) Visualize() {
+	keyIndex.lock.RLock()
+	keyIndex.root.Visualize()
+	keyIndex.lock.RUnlock()
+}
+
+func (keyIndex *KeyIndex) KeysToTransfer(predHash, nodeHash, currHash int64) []string {
+	keyIndex.lock.RLock()
+	keys := keyIndex.root.KeysToTransfer(predHash, nodeHash, currHash)
+	keyIndex.lock.RUnlock()
+	return keys
+}
+
+func (keyIndex *KeyIndex) InsertBatch(data *pb.KVMap) {
+	keyIndex.lock.Lock()
+	keyIndex.root.InsertBatch(data)
+	keyIndex.lock.Unlock()
+}
 
 type BST struct {
 	Key    string
@@ -17,7 +60,7 @@ type BST struct {
 	Set    bool
 }
 
-func NewKeyIndex(key string, hash int64, left *BST, right *BST, parent *BST) *BST {
+func NewBST(key string, hash int64, left *BST, right *BST, parent *BST) *BST {
 	keyIndex := &BST{Key: key, Hash: hash, Left: left, Right: right, Parent: parent, Set: true}
 	return keyIndex
 }
@@ -37,13 +80,13 @@ func (bst *BST) Insert(key string, hash int64, parent *BST) {
 		if bst.Left != nil {
 			bst.Left.Insert(key, hash, bst)
 		} else {
-			bst.Left = NewKeyIndex(key, hash, nil, nil, bst)
+			bst.Left = NewBST(key, hash, nil, nil, bst)
 		}
 	} else if hash >= bst.Hash {
 		if bst.Right != nil {
 			bst.Right.Insert(key, hash, bst)
 		} else {
-			bst.Right = NewKeyIndex(key, hash, nil, nil, bst)
+			bst.Right = NewBST(key, hash, nil, nil, bst)
 		}
 	}
 }

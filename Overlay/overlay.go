@@ -32,9 +32,9 @@ type ChordServer struct {
 	Capacity       int64
 	Predecessor    *ChordNode
 	FingerTable    []*ChordNode
-	KeyIndex       *BST
-	FingerMuxs     []*sync.RWMutex
-	PredecessorMux *sync.RWMutex
+	keyIndex       *KeyIndex
+	FingerMuxs     []sync.RWMutex
+	PredecessorMux sync.RWMutex
 	pb.UnimplementedLookupServer
 	pb.UnimplementedPredecessorServer
 	pb.UnimplementedCheckServer
@@ -43,27 +43,22 @@ type ChordServer struct {
 
 func NewChordServer(ip string, capacity int64) (*ChordServer, error) {
 	chordServer := &ChordServer{
-		IP:             ip,
-		Hash:           hash(ip, capacity),
-		Capacity:       capacity,
-		Predecessor:    nil,
-		FingerTable:    make([]*ChordNode, capacity),
-		FingerMuxs:     make([]*sync.RWMutex, capacity),
-		PredecessorMux: &sync.RWMutex{},
+		IP:          ip,
+		Hash:        hash(ip, capacity),
+		Capacity:    capacity,
+		Predecessor: nil,
+		FingerTable: make([]*ChordNode, capacity),
+		FingerMuxs:  make([]sync.RWMutex, capacity),
 	}
 
 	chordServer.KVStore = data.NewDataServer(chordServer.RegisterKey, chordServer.RegisterDelete)
-	chordServer.KeyIndex = &BST{}
+	chordServer.keyIndex = NewKeyIndex()
 
 	successor, err := Connect(ip)
 	if err != nil {
 		return nil, err
 	}
 	chordServer.FingerTable[0] = successor
-
-	for finger := 0; finger < int(capacity); finger++ {
-		chordServer.FingerMuxs[finger] = &sync.RWMutex{}
-	}
 
 	return chordServer, nil
 }
@@ -138,11 +133,6 @@ func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 func (chordServer *ChordServer) Leave() {
 
 	transferData := make(map[string]*pb.Value)
-
-	// for key, value := range chordServer.KVStore.KVMap {
-	// 	&pb.KVMap{}
-	// }
-
 	chordServer.FingerTable[0].DataClient.TransferData(context.Background(), &pb.KVMap{Kvmap: transferData})
 }
 
@@ -152,9 +142,9 @@ func (chordServer *ChordServer) RegisterKey(key string) {
 		return
 	}
 
-	chordServer.KeyIndex.Insert(key, hash(key, chordServer.Capacity), nil)
+	chordServer.keyIndex.Insert(key, hash(key, chordServer.Capacity))
 	log.Printf("[INFO] Post-Insert %s", key)
-	chordServer.KeyIndex.Visualize()
+	chordServer.keyIndex.Visualize()
 }
 
 func (chordServer *ChordServer) RegisterDelete(key string) {
@@ -163,8 +153,8 @@ func (chordServer *ChordServer) RegisterDelete(key string) {
 		return
 	}
 
-	chordServer.KeyIndex.Delete(key, hash(key, chordServer.Capacity))
+	chordServer.keyIndex.Delete(key, hash(key, chordServer.Capacity))
 
 	log.Printf("[INFO] Post-Delete %s", key)
-	chordServer.KeyIndex.Visualize()
+	chordServer.keyIndex.Visualize()
 }
