@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 
 	pb "github.com/girivad/go-chord/Proto"
 	"github.com/gorilla/mux"
@@ -18,6 +19,7 @@ type Value struct {
 
 type DataServer struct {
 	KVMap          map[string]Value
+	Lock           sync.RWMutex
 	RegisterKey    func(string)
 	RegisterDelete func(string)
 }
@@ -36,7 +38,9 @@ func (dataServer *DataServer) GetValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Retrieve value from map
+	dataServer.Lock.RLock()
 	value, found := dataServer.KVMap[key]
+	dataServer.Lock.RUnlock()
 
 	// Handle not found
 	if !found {
@@ -87,8 +91,10 @@ func (dataServer *DataServer) PutValue(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] PUT key: %s, value: %v", key, value)
 
 	// Edit the key-value pair
+	dataServer.Lock.Lock()
 	_, found := dataServer.KVMap[key]
 	dataServer.KVMap[key] = value
+	dataServer.Lock.Unlock()
 
 	var status int
 	if found {
@@ -119,7 +125,10 @@ func (dataServer *DataServer) DeleteKV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dataServer.Lock.Lock()
 	delete(dataServer.KVMap, key)
+	dataServer.Lock.Unlock()
+
 	dataServer.RegisterDelete(key)
 
 	w.WriteHeader(http.StatusOK)
@@ -137,8 +146,10 @@ func (dataServer *DataServer) Serve(port int) {
 
 func (dataServer *DataServer) GetValuesForTransfer(keys []string) (*pb.KVMap, error) {
 	kvMap := make(map[string]*pb.Value)
+	dataServer.Lock.RLock()
 	for _, key := range keys {
 		value, ok := dataServer.KVMap[key]
+
 		if !ok {
 			continue
 		}
@@ -152,10 +163,13 @@ func (dataServer *DataServer) GetValuesForTransfer(keys []string) (*pb.KVMap, er
 
 		kvMap[key] = &pb.Value{Val: &anypb.Any{Value: byteValue}}
 	}
+	dataServer.Lock.RUnlock()
+
 	return &pb.KVMap{Kvmap: kvMap}, nil
 }
 
 func (dataServer *DataServer) PutValuesForTransfer(data *pb.KVMap) error {
+	dataServer.Lock.Lock()
 
 	for key, value := range data.Kvmap {
 		parsedValue := &Value{}
@@ -168,6 +182,8 @@ func (dataServer *DataServer) PutValuesForTransfer(data *pb.KVMap) error {
 
 		dataServer.KVMap[key] = *parsedValue
 	}
+
+	dataServer.Lock.Unlock()
 
 	return nil
 }

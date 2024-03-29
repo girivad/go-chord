@@ -121,6 +121,7 @@ func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error
 	var predHash int64
 
 	chordServer.PredecessorMux.RLock()
+
 	if chordServer.Predecessor != nil {
 		predecessorIP := chordServer.Predecessor.Ip
 		predHash = hash(predecessorIP, chordServer.Capacity)
@@ -139,6 +140,7 @@ func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error
 
 func (chordServer *ChordServer) TransferData(ctx context.Context, data *pb.KVMap) (*emptypb.Empty, error) {
 	err := chordServer.KVStore.PutValuesForTransfer(data)
+	chordServer.KeyIndex.InsertBatch(data)
 
 	return &emptypb.Empty{}, err
 }

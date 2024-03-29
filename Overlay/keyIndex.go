@@ -1,6 +1,12 @@
 package overlay
 
-import "log"
+import (
+	"log"
+
+	pb "github.com/girivad/go-chord/Proto"
+)
+
+// To-do: Implement KeyIndex containing BST + Lock
 
 type BST struct {
 	Key    string
@@ -263,4 +269,8 @@ func (bst *BST) Visualize() {
 	if bst.Right != nil {
 		bst.Right.Visualize()
 	}
+}
+
+func (bst *BST) InsertBatch(data *pb.KVMap) {
+
 }
