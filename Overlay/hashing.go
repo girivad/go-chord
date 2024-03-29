@@ -6,10 +6,9 @@ import (
 )
 
 func hash(ip string, capacity int64) int64 {
-	// Placeholder Hash
 	// This has 160 bits.
 	hashBytes := sha1.Sum(([]byte)(ip))
-	relHashBytes := hashBytes[8:]
+	relHashBytes := hashBytes[13:]
 
 	relHashUint := binary.BigEndian.Uint64(relHashBytes)
 
@@ -19,6 +18,6 @@ func hash(ip string, capacity int64) int64 {
 }
 
 func isBetween(candidate int64, start int64, end int64) bool {
-	return ((start < end && candidate > start && candidate < end) ||
+	return ((start < end && candidate > start && candidate <= end) ||
 		(start > end && (candidate > start || candidate <= end)))
 }
