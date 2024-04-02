@@ -140,7 +140,7 @@ func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error
 
 func (chordServer *ChordServer) TransferData(ctx context.Context, data *pb.KVMap) (*emptypb.Empty, error) {
 	err := chordServer.KVStore.PutValuesForTransfer(data)
-	chordServer.keyIndex.InsertBatch(data)
+	chordServer.keyIndex.InsertBatch(data, func(key string) int64 { return hash(key, chordServer.Capacity) })
 
 	return &emptypb.Empty{}, err
 }

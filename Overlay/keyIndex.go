@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"log"
+	"slices"
 	"sync"
 
 	pb "github.com/girivad/go-chord/Proto"
@@ -45,9 +46,15 @@ func (keyIndex *KeyIndex) KeysToTransfer(predHash, nodeHash, currHash int64) []s
 	return keys
 }
 
-func (keyIndex *KeyIndex) InsertBatch(data *pb.KVMap) {
+func (keyIndex *KeyIndex) InsertBatch(data *pb.KVMap, hashFunc func(key string) int64) {
+	var keys []string
+
+	for key := range data.Kvmap {
+		keys = append(keys, key)
+	}
+
 	keyIndex.lock.Lock()
-	keyIndex.root.InsertBatch(data)
+	keyIndex.root.InsertBatch(keys, hashFunc)
 	keyIndex.lock.Unlock()
 }
 
@@ -314,6 +321,52 @@ func (bst *BST) Visualize() {
 	}
 }
 
-func (bst *BST) InsertBatch(data *pb.KVMap) {
+func (bst *BST) InsertBatch(keys []string, hashFunc func(key string) int64) {
+	if len(keys) == 0 {
+		return
+	}
 
+	if !bst.Set {
+		slices.SortFunc(keys, func(key1, key2 string) int {
+			if hashFunc(key1) < hashFunc(key2) {
+				return -1
+			}
+			if hashFunc(key1) == hashFunc(key2) {
+				return 0
+			}
+			return 1
+		})
+
+		midKey := keys[len(keys)/2]
+		bst.Insert(midKey, hashFunc(midKey), bst.Parent)
+	}
+
+	var leftKeys, rightKeys []string
+	var leftNodeKey, rightNodeKey string
+
+	for _, key := range keys {
+		if hashFunc(key) < bst.Hash {
+			leftKeys = append(leftKeys, key)
+			if key > leftNodeKey {
+				leftNodeKey = key
+			}
+		} else if hashFunc(key) > bst.Hash {
+			rightKeys = append(rightKeys, key)
+			if key < rightNodeKey {
+				rightNodeKey = key
+			}
+		}
+	}
+
+	if bst.Left == nil {
+		bst.Left = NewBST(leftNodeKey, hashFunc(leftNodeKey), nil, nil, bst)
+	}
+
+	bst.Left.InsertBatch(leftKeys, hashFunc)
+
+	if bst.Right == nil {
+		bst.Right = NewBST(rightNodeKey, hashFunc(rightNodeKey), nil, nil, bst)
+	}
+
+	bst.Right.InsertBatch(rightKeys, hashFunc)
 }
