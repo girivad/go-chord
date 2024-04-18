@@ -21,13 +21,13 @@ func NewKeyIndex() *KeyIndex {
 	}
 }
 
-func (keyIndex *KeyIndex) Insert(key string, hash int64) {
+func (keyIndex *KeyIndex) Insert(key string, hash uint64) {
 	keyIndex.lock.Lock()
 	keyIndex.root.Insert(key, hash, nil)
 	keyIndex.lock.Unlock()
 }
 
-func (keyIndex *KeyIndex) Delete(key string, hash int64) {
+func (keyIndex *KeyIndex) Delete(key string, hash uint64) {
 	keyIndex.lock.Lock()
 	keyIndex.root.Delete(key, hash)
 	keyIndex.lock.Unlock()
@@ -39,14 +39,14 @@ func (keyIndex *KeyIndex) Visualize() {
 	keyIndex.lock.RUnlock()
 }
 
-func (keyIndex *KeyIndex) KeysToTransfer(predHash, nodeHash, currHash int64) []string {
+func (keyIndex *KeyIndex) KeysToTransfer(predHash, nodeHash, currHash uint64) []string {
 	keyIndex.lock.RLock()
 	keys := keyIndex.root.KeysToTransfer(predHash, nodeHash, currHash)
 	keyIndex.lock.RUnlock()
 	return keys
 }
 
-func (keyIndex *KeyIndex) InsertBatch(data *pb.KVMap, hashFunc func(key string) int64) {
+func (keyIndex *KeyIndex) InsertBatch(data *pb.KVMap, hashFunc func(key string) uint64) {
 	var keys []string
 
 	for key := range data.Kvmap {
@@ -60,21 +60,21 @@ func (keyIndex *KeyIndex) InsertBatch(data *pb.KVMap, hashFunc func(key string) 
 
 type BST struct {
 	Key    string
-	Hash   int64
+	Hash   uint64
 	Left   *BST
 	Right  *BST
 	Parent *BST
 	Set    bool
 }
 
-func NewBST(key string, hash int64, left *BST, right *BST, parent *BST) *BST {
+func NewBST(key string, hash uint64, left *BST, right *BST, parent *BST) *BST {
 	keyIndex := &BST{Key: key, Hash: hash, Left: left, Right: right, Parent: parent, Set: true}
 	return keyIndex
 }
 
 // SINGLE-KEY OPERATIONS: Insert Key, Delete Key
 
-func (bst *BST) Insert(key string, hash int64, parent *BST) {
+func (bst *BST) Insert(key string, hash uint64, parent *BST) {
 	if !bst.Set {
 		bst.Key = key
 		bst.Hash = hash
@@ -127,7 +127,7 @@ func (bst *BST) DeleteLeaf() {
 	}
 }
 
-func (bst *BST) Delete(key string, hash int64) bool {
+func (bst *BST) Delete(key string, hash uint64) bool {
 	var found bool
 	var swapNode *BST
 
@@ -179,7 +179,7 @@ func (bst *BST) Delete(key string, hash int64) bool {
 // BATCH-OPERATIONS: KeysToTransfer, (TO-DO) Insert Keys, Delete Keys
 
 // Retrieve all keys between my predecessor and a new node
-func (bst *BST) KeysToTransfer(predHash int64, newHash int64, currHash int64) []string {
+func (bst *BST) KeysToTransfer(predHash, newHash, currHash uint64) []string {
 	if currHash > predHash {
 		return bst.KeysGreaterThan(newHash)
 	}
@@ -191,7 +191,7 @@ func (bst *BST) KeysToTransfer(predHash int64, newHash int64, currHash int64) []
 	return append(bst.KeysGreaterThan(predHash), bst.KeysLessThan(newHash)...)
 }
 
-func (bst *BST) KeysGreaterThan(lowerBound int64) []string {
+func (bst *BST) KeysGreaterThan(lowerBound uint64) []string {
 
 	var keys []string
 
@@ -201,11 +201,13 @@ func (bst *BST) KeysGreaterThan(lowerBound int64) []string {
 
 	// If it is less than or equal to the newHash, return searchRight of the right subtree.
 	if bst.Hash <= lowerBound && bst.Right != nil {
+		log.Printf("[DEBUG] %d not greater than %d", bst.Hash, lowerBound)
 		return bst.Right.KeysGreaterThan(lowerBound)
 	} else if bst.Hash <= lowerBound {
+		log.Printf("[DEBUG] %d not greater than %d and nothing to its right", bst.Hash, lowerBound)
 		return keys
 	}
-
+	log.Printf("[DEBUG] %d greater than or equal to %d, %s included.", bst.Hash, lowerBound, bst.Key)
 	keys = append(keys, bst.Key)
 
 	// Return the traversal of the right subtree, and any elements of the left subtree that might be greater than the lower bound.
@@ -219,7 +221,7 @@ func (bst *BST) KeysGreaterThan(lowerBound int64) []string {
 	return keys
 }
 
-func (bst *BST) KeysLessThan(upperBound int64) []string {
+func (bst *BST) KeysLessThan(upperBound uint64) []string {
 	var keys []string
 
 	if !bst.Set {
@@ -227,12 +229,15 @@ func (bst *BST) KeysLessThan(upperBound int64) []string {
 	}
 
 	if bst.Hash > upperBound && bst.Left != nil {
+		log.Printf("[DEBUG] %d > %d, excluded.", bst.Hash, upperBound)
 		return bst.Left.KeysLessThan(upperBound)
 	} else if bst.Hash > upperBound {
+		log.Printf("[DEBUG] %d > %d, excluded.", bst.Hash, upperBound)
 		return keys
 	}
 
 	keys = append(keys, bst.Key)
+	log.Printf("[DEBUG] %d <= %d, %s included.", bst.Hash, upperBound, bst.Key)
 	if bst.Right != nil {
 		keys = append(keys, bst.Right.KeysLessThan(upperBound)...)
 	}
@@ -244,7 +249,7 @@ func (bst *BST) KeysLessThan(upperBound int64) []string {
 }
 
 // Finds all keys in (startHash, endHash]
-func (bst *BST) KeysBetween(startHash int64, endHash int64) []string {
+func (bst *BST) KeysBetween(startHash, endHash uint64) []string {
 	var keys []string
 
 	if !bst.Set {
@@ -253,21 +258,26 @@ func (bst *BST) KeysBetween(startHash int64, endHash int64) []string {
 
 	// If Key too small:
 	if bst.Hash <= startHash && bst.Right != nil {
+		log.Printf("[DEBUG] %d < %d, excluded.", bst.Hash, startHash)
 		return bst.Right.KeysBetween(startHash, endHash)
 	} else if bst.Hash < startHash {
+		log.Printf("[DEBUG] %d < %d, excluded.", bst.Hash, startHash)
 		return keys
 	}
 
 	// If Key too large:
 	if bst.Hash > endHash && bst.Left != nil {
+		log.Printf("[DEBUG] %d > %d, excluded", bst.Hash, endHash)
 		return bst.Left.KeysBetween(startHash, endHash)
 	} else if bst.Hash > endHash {
+		log.Printf("[DEBUG] %d > %d, excluded", bst.Hash, endHash)
 		return keys
 	}
 
 	// If Key in range:
 
 	keys = append(keys, bst.Key)
+	log.Printf("[DEBUG] %d in between %d and %d, %s included", bst.Hash, startHash, endHash, bst.Key)
 
 	if bst.Right != nil {
 		keys = append(keys, bst.Right.KeysLessThan(endHash)...)
@@ -286,6 +296,7 @@ func (bst *BST) AllKeys() []string {
 	}
 
 	traversal = append(traversal, bst.Key)
+	log.Printf("[DEBUG] %s included in traversal", bst.Key)
 
 	if bst.Left != nil {
 		traversal = append(traversal, bst.Left.AllKeys()...)
@@ -321,7 +332,7 @@ func (bst *BST) Visualize() {
 	}
 }
 
-func (bst *BST) InsertBatch(keys []string, hashFunc func(key string) int64) {
+func (bst *BST) InsertBatch(keys []string, hashFunc func(key string) uint64) {
 	if len(keys) == 0 {
 		return
 	}

@@ -48,7 +48,7 @@ func (chordServer *ChordServer) FixFingers() {
 	retries := 0
 	expired := false
 
-	var fingerToUpdate, fingerStart int64
+	var fingerToUpdate, fingerStart uint64
 	var newFinger *ChordNode
 	var previousFingerIP string
 
@@ -98,7 +98,7 @@ func (chordServer *ChordServer) FixFingers() {
 		}
 
 		newFingerIp, err := chordServer.FindSuccessor(context.Background(), &pb.Hash{
-			Hash: &wrapperspb.Int64Value{Value: fingerStart},
+			Hash: &wrapperspb.UInt64Value{Value: fingerStart},
 		})
 
 		if err != nil {

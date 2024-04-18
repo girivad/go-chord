@@ -113,12 +113,12 @@ func (chordServer *ChordServer) LiveCheck(ctx context.Context, empty *emptypb.Em
 }
 
 // Data Service: Transfer data to new owner
-func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error) {
+func (chordServer *ChordServer) DataToTransfer(nodeHash uint64) (*pb.KVMap, error) {
 	// TO-DO: Delete the keys.
 	// TO-DO^2: Have a different route to delete the keys or do so when acknowledged
 	// If predecessor is nil, it should transfer
 
-	var predHash int64
+	var predHash uint64
 
 	chordServer.PredecessorMux.RLock()
 
@@ -128,6 +128,8 @@ func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error
 	} else {
 		predHash = (hash(chordServer.IP, chordServer.Capacity) + 1) % (1 << chordServer.Capacity)
 	}
+
+	log.Printf("[DEBUG] nodeHash: %d, predHash: %d, chordHash: %d", nodeHash, predHash, chordServer.Hash)
 
 	chordServer.PredecessorMux.RUnlock()
 
@@ -139,8 +141,12 @@ func (chordServer *ChordServer) DataToTransfer(nodeHash int64) (*pb.KVMap, error
 }
 
 func (chordServer *ChordServer) TransferData(ctx context.Context, data *pb.KVMap) (*emptypb.Empty, error) {
+	log.Printf("[INFO] Received Data Transfer")
 	err := chordServer.KVStore.PutValuesForTransfer(data)
-	chordServer.keyIndex.InsertBatch(data, func(key string) int64 { return hash(key, chordServer.Capacity) })
+	log.Printf("[INFO] Updated Data: %v", chordServer.KVStore.KVMap)
+	chordServer.keyIndex.InsertBatch(data, func(key string) uint64 { return hash(key, chordServer.Capacity) })
+	log.Println("[INFO] Updated Key Index")
+	chordServer.keyIndex.Visualize()
 
 	return &emptypb.Empty{}, err
 }

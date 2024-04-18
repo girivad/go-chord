@@ -32,7 +32,7 @@ func main() {
 	// TO-DO: Implement IP Verification (verify that this is a valid IP address, at least via Regex)
 
 	// Create a new ChordNode and join an existing chord ring if requested.
-	chordServer, err := overlay.NewChordServer(ip, capacity)
+	chordServer, err := overlay.NewChordServer(ip, (uint64)(capacity))
 
 	if err != nil {
 		log.Printf("[FATAL] Failed to connect to self.")

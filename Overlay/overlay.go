@@ -28,8 +28,8 @@ type ChordNode struct {
 type ChordServer struct {
 	KVStore        *data.DataServer
 	IP             string
-	Hash           int64
-	Capacity       int64
+	Hash           uint64
+	Capacity       uint64
 	Predecessor    *ChordNode
 	FingerTable    []*ChordNode
 	keyIndex       *KeyIndex
@@ -41,7 +41,7 @@ type ChordServer struct {
 	pb.UnimplementedDataServer
 }
 
-func NewChordServer(ip string, capacity int64) (*ChordServer, error) {
+func NewChordServer(ip string, capacity uint64) (*ChordServer, error) {
 	chordServer := &ChordServer{
 		IP:          ip,
 		Hash:        hash(ip, capacity),
@@ -111,7 +111,7 @@ func Connect(ip string) (*ChordNode, error) {
 func (chordServer *ChordServer) Join(contactNode *ChordNode) error {
 	// Find successor
 	successorIpMsg, err := contactNode.LookupClient.FindSuccessor(context.Background(), &pb.Hash{
-		Hash: &(wrapperspb.Int64Value{Value: chordServer.Hash}),
+		Hash: &(wrapperspb.UInt64Value{Value: chordServer.Hash}),
 	})
 
 	if err != nil {

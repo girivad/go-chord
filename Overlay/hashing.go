@@ -5,19 +5,17 @@ import (
 	"encoding/binary"
 )
 
-func hash(ip string, capacity int64) int64 {
+func hash(ip string, capacity uint64) uint64 {
 	// This has 160 bits.
 	hashBytes := sha1.Sum(([]byte)(ip))
-	relHashBytes := hashBytes[13:]
+	relHashBytes := hashBytes[12:]
 
 	relHashUint := binary.BigEndian.Uint64(relHashBytes)
 
-	relHashInt := int64(relHashUint)
-
-	return relHashInt % (1 << capacity)
+	return relHashUint % (1 << capacity)
 }
 
-func isBetween(candidate int64, start int64, end int64) bool {
+func isBetween(candidate uint64, start uint64, end uint64) bool {
 	return ((start < end && candidate > start && candidate <= end) ||
 		(start > end && (candidate > start || candidate <= end)))
 }
