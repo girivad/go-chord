@@ -15,7 +15,7 @@ Main:
 
 Potential Organizations:
 
-### Data, Lookup?, Maintenance, etc.
+### Data, Lookup, Maintenance, etc.
 
 Folder 1: Data
 - Implement KV Handlers
