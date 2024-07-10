@@ -5,12 +5,12 @@ DataServer Struct:
 - DataNode
 
 Main: 
-    Run a gRPC client to be able to send requests to peers
-    Join an existing ring or Create a new one.
-    Initialize new server struct.
-    Run a gRPC server to handle peer requests
-    Run a REST API server to handle user requests
-    Run a set of maintenance routines as go routines
+    * Run a gRPC client to be able to send requests to peers
+    * Join an existing ring or Create a new one.
+    * Initialize new server struct.
+    * Run a gRPC server to handle peer requests
+    * Run a REST API server to handle user requests
+    * Run a set of maintenance routines as go routines
 
     Clean up when all routines are done and exit
 
